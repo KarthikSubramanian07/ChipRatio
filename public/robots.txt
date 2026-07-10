@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://chipratio.pages.dev/sitemap.xml

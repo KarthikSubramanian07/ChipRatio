@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ChipRatio">
+  <defs>
+    <clipPath id="disc"><circle cx="32" cy="32" r="30" /></clipPath>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="#0b6b3a" />
+  <g clip-path="url(#disc)">
+    <g fill="#e8b84b">
+      <rect x="29" y="0" width="6" height="12" />
+      <rect x="29" y="52" width="6" height="12" />
+      <rect x="0" y="29" width="12" height="6" />
+      <rect x="52" y="29" width="12" height="6" />
+      <rect x="29" y="0" width="6" height="12" transform="rotate(45 32 32)" />
+      <rect x="29" y="52" width="6" height="12" transform="rotate(45 32 32)" />
+      <rect x="0" y="29" width="12" height="6" transform="rotate(45 32 32)" />
+      <rect x="52" y="29" width="12" height="6" transform="rotate(45 32 32)" />
+    </g>
+  </g>
+  <circle cx="32" cy="32" r="30" fill="none" stroke="#e8b84b" stroke-width="4" />
+  <circle cx="32" cy="32" r="19" fill="#0a3020" stroke="#e8b84b" stroke-width="2.5" />
+  <text x="32" y="39" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#e8b84b">CR</text>
+</svg>
