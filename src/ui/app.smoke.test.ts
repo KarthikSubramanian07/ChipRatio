@@ -27,6 +27,11 @@ describe('app smoke', () => {
     expect(Number(total!.textContent)).toBeGreaterThan(0);
     // Standard 300 has four denominations.
     expect(root.querySelectorAll('.denom-row').length).toBe(4);
+    // The row-by-row editor stays collapsed until asked for, so a new visitor sees
+    // the preset choice and a one-line summary, not four editable rows right away.
+    const details = root.querySelector('.editor-details') as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    expect(root.querySelector('.set-summary')!.textContent).toContain('White');
     // Suggest mode is the default, so a recommendation shows.
     expect(root.querySelector('.suggestion')).not.toBeNull();
     expect(root.querySelectorAll('.stack-row').length).toBeGreaterThan(0);

@@ -331,6 +331,21 @@ p {
 }
 
 /* --- Editor rows ------------------------------------------------------------ */
+.set-summary {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0 0 14px;
+}
+.editor-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.editor-details[open] summary {
+  margin-bottom: 14px;
+}
 .col-labels,
 .denom-row {
   display: grid;

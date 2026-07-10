@@ -24,6 +24,7 @@ import { Store, cryptoId, type AppState } from './state';
 
 export function mountApp(root: HTMLElement, store: Store): void {
   const denomList = el('div', { class: 'denom-list' });
+  const setSummary = el('p', { class: 'set-summary' });
   const buyInField = el('div', { class: 'field buyin-field' });
   const results = el('div', { class: 'results', attrs: { 'aria-live': 'polite' } });
 
@@ -34,12 +35,14 @@ export function mountApp(root: HTMLElement, store: Store): void {
 
   const rebuildDenoms = (): void => {
     clear(denomList);
-    for (const d of store.get().set.denominations) {
+    const denoms = store.get().set.denominations;
+    for (const d of denoms) {
       denomList.append(denomRow(store, d, rebuildDenoms, recompute));
     }
+    setSummary.textContent = summarizeSet(denoms);
   };
 
-  const editor = buildEditor(store, denomList, rebuildDenoms, recompute);
+  const editor = buildEditor(store, denomList, setSummary, rebuildDenoms, recompute);
   const game = buildGamePanel(store, buyInField, recompute);
 
   root.append(el('div', { class: 'calc' }, editor, game, results));
@@ -54,6 +57,7 @@ export function mountApp(root: HTMLElement, store: Store): void {
 function buildEditor(
   store: Store,
   denomList: HTMLElement,
+  setSummary: HTMLElement,
   rebuildDenoms: () => void,
   recompute: () => void,
 ): HTMLElement {
@@ -112,16 +116,22 @@ function buildEditor(
       el('h2', {}, 'Your chip set'),
       el('div', { class: 'panel-head-actions' }, preset, resetBtn),
     ),
+    setSummary,
     el(
-      'div',
-      { class: 'col-labels' },
-      el('span', {}, 'Color'),
-      el('span', {}, 'Value'),
-      el('span', {}, 'In the box'),
-      el('span', {}, ''),
+      'details',
+      { class: 'editor-details' },
+      el('summary', {}, 'Customize colors, values, and counts'),
+      el(
+        'div',
+        { class: 'col-labels' },
+        el('span', {}, 'Color'),
+        el('span', {}, 'Value'),
+        el('span', {}, 'In the box'),
+        el('span', {}, ''),
+      ),
+      denomList,
+      addBtn,
     ),
-    denomList,
-    addBtn,
   );
 }
 
@@ -663,6 +673,16 @@ function addDenom(store: Store): void {
 }
 
 // --- Formatting helpers -------------------------------------------------------
+
+/** One-line recap shown above the collapsed editor, e.g. "100 white (1), 100 red (5)...". */
+function summarizeSet(denoms: Denom[]): string {
+  if (denoms.length === 0) return 'No chips yet.';
+  const label = (color: string): string => PALETTE.find((c) => c.key === color)?.label ?? color;
+  return [...denoms]
+    .sort((a, b) => a.value - b.value)
+    .map((d) => `${d.count} ${label(d.color)} (${d.value})`)
+    .join(', ');
+}
 
 function severity(code: WarningCode): string {
   return code === 'infeasible' || code === 'not-enough-chips' || code === 'input'
