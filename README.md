@@ -7,6 +7,7 @@
 [![CI](https://github.com/KarthikSubramanian07/ChipRatio/actions/workflows/ci.yml/badge.svg)](https://github.com/KarthikSubramanian07/ChipRatio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Runtime dependencies: 0](https://img.shields.io/badge/runtime%20deps-0-brightgreen)
+[![Buy Me A Coffee](https://img.shields.io/badge/buy%20me%20a-coffee-ffdd00.svg)](https://buymeacoffee.com/winnerkarthik)
 
 ---
 
@@ -83,3 +84,5 @@ ChipRatio distributes chips and chip values. It is a math utility, not a gamblin
 ## License
 
 [MIT](LICENSE). Free forever, and free to fork.
+
+If ChipRatio saved your poker night, [buy me a coffee](https://buymeacoffee.com/winnerkarthik). Entirely optional, the tool stays free either way.
