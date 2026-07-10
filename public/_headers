@@ -1,0 +1,12 @@
+# Cloudflare Pages headers. Hashed build assets are immutable; HTML and metadata are not.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Applied to every path, not just / and /index.html, so any future page (a 404, a
+# second route) is covered too instead of shipping with no CSP by default.
+/*
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'

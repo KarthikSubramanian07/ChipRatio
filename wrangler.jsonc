@@ -1,0 +1,7 @@
+{
+  // Cloudflare Pages project config. `npm run deploy` and the deploy workflow both use it.
+  // The site is fully static, so there are no functions, bindings, or secrets here.
+  "name": "chipratio",
+  "pages_build_output_dir": "dist",
+  "compatibility_date": "2025-01-01",
+}

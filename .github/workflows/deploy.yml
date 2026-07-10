@@ -1,0 +1,38 @@
+name: Deploy
+
+# Auto-deploys to Cloudflare Pages on push to main. It stays green before you add the
+# secrets: the deploy step simply skips when CLOUDFLARE_API_TOKEN is not set, and starts
+# publishing the moment you add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in the
+# repo settings (Settings -> Secrets and variables -> Actions).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Actions pinned to a commit SHA (not a mutable tag) since this job carries a
+      # live deploy credential; a comment notes which released version each SHA is.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Check for deploy secret
+        id: check
+        run: echo "has_token=${{ secrets.CLOUDFLARE_API_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+      - name: Deploy to Cloudflare Pages
+        if: steps.check.outputs.has_token == 'true'
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=chipratio
