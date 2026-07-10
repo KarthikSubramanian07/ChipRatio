@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en" data-theme="felt">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Runs before the stylesheet loads to avoid a flash of the wrong theme. See the file. -->
+    <script src="/theme-init.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="mask-icon" href="/favicon.svg" color="#0b6b3a" />
+    <meta name="theme-color" content="#0b3d24" />
+
+    <title>ChipRatio: Poker Chip Calculator for Perfect Home Game Splits</title>
+    <meta
+      name="description"
+      content="Enter your poker chip set, players, and buy-in. ChipRatio hands every player an identical, exact chip stack plus a blind structure, instantly. Free forever, no ads, no signup."
+    />
+    <meta
+      name="keywords"
+      content="poker chip calculator, poker chip distribution calculator, how many poker chips per player, poker chip values calculator, home poker chip setup, poker chip calculator free, poker blind structure calculator"
+    />
+    <link rel="canonical" href="https://chipratio.pages.dev/" />
+    <meta name="robots" content="index, follow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="ChipRatio: Poker Chip Calculator for Home Games" />
+    <meta
+      property="og:description"
+      content="Enter your chip set, get perfect equal stacks and a blind structure, instantly. Free forever, no ads, no signup."
+    />
+    <meta property="og:url" content="https://chipratio.pages.dev/" />
+    <meta property="og:image" content="https://chipratio.pages.dev/og.svg" />
+    <meta property="og:site_name" content="ChipRatio" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ChipRatio: Poker Chip Calculator for Home Games" />
+    <meta
+      name="twitter:description"
+      content="Enter your chip set, get perfect equal stacks and a blind structure, instantly. Free forever."
+    />
+    <meta name="twitter:image" content="https://chipratio.pages.dev/og.svg" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "ChipRatio",
+        "url": "https://chipratio.pages.dev/",
+        "description": "A free poker chip calculator that turns your chip set, player count, and buy-in into identical, exact per-player stacks and a blind structure.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "isAccessibleForFree": true
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How many poker chips should each player get?",
+            "acceptedText": "For a home tournament, aim for 30 to 50 chips per player in a pyramid: many small chips, fewer large ones. ChipRatio builds exactly that from your set and buy-in.",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "For a home tournament, aim for 30 to 50 chips per player in a pyramid: many small chips, fewer large ones. ChipRatio builds exactly that from your set and buy-in."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What are the standard poker chip values by color?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The common convention is white 1, red 5, green 25, black 100, and purple 500. Values vary by venue, so ChipRatio lets you set your own."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is ChipRatio free?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. ChipRatio is free forever. No ads, no signup, no paywall. It runs entirely in your browser."
+            }
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#calculator">Skip to the calculator</a>
+
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <a class="brand" href="/" aria-label="ChipRatio home">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-name">Chip<span class="brand-accent">Ratio</span></span>
+        </a>
+        <div class="header-actions">
+          <span class="free-badge" title="No ads, no signup, no paywall">Free forever</span>
+          <button id="theme-button" class="theme-button" type="button" aria-label="Change theme">
+            <span id="theme-label">Felt</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <h1>The poker chip calculator that actually does the math</h1>
+        <p class="lede">
+          Tell ChipRatio what is in your case. Get a perfect, equal stack for every player, the
+          exact leftover for rebuys, and a blind structure to match. One screen, no guessing, no
+          forum rules of thumb.
+        </p>
+      </section>
+
+      <!-- The calculator mounts here. It is fully client side and needs JavaScript. -->
+      <div id="calculator"></div>
+      <noscript>
+        <p class="noscript-note">
+          ChipRatio runs in your browser and needs JavaScript switched on. The math is a few
+          kilobytes and never leaves your device.
+        </p>
+      </noscript>
+
+      <!-- Static, crawlable content. Real answers, not filler. -->
+      <section class="prose" aria-labelledby="how-heading">
+        <h2 id="how-heading">How ChipRatio splits your chips</h2>
+        <p>
+          Every player gets an identical stack, so per color the most anyone can receive is the
+          number in the box divided by the player count. Inside those limits ChipRatio searches for
+          the stack that hits your buy-in exactly and looks like a proper pyramid: plenty of the
+          smallest chip to post and change the blinds, fewer of each larger one, a couple of big
+          chips to keep the pile small. If the exact buy-in is not reachable with equal stacks, it
+          snaps to the nearest value and tells you.
+        </p>
+
+        <h2>Poker chip values by color</h2>
+        <p>
+          The widely used convention is white 1, red 5, green 25, black 100, and purple 500. It is a
+          convention, not a law, so ChipRatio ships those as defaults and lets you set any color and
+          value you like. The math works in abstract chip value, and the optional cash column is
+          pure display arithmetic. ChipRatio never touches real money.
+        </p>
+
+        <section class="faq" aria-labelledby="faq-heading">
+          <h2 id="faq-heading">Questions people actually ask</h2>
+          <details>
+            <summary>How many chips should each player start with?</summary>
+            <p>
+              For a home tournament, 30 to 50 chips per player feels right. Enough to stack neatly,
+              not so many that the table looks like a bank heist. ChipRatio targets that range
+              automatically.
+            </p>
+          </details>
+          <details>
+            <summary>What if my buy-in is not reachable with equal stacks?</summary>
+            <p>
+              ChipRatio snaps to the nearest value it can build fairly and flags it. Turn on uneven
+              small chips and it will let the smallest denomination differ by one between players to
+              land the exact table total. That is the only difference it will ever introduce.
+            </p>
+          </details>
+          <details>
+            <summary>Do you store my chip set or track me?</summary>
+            <p>
+              No accounts, no servers, no analytics for sale. Your last set is saved in your own
+              browser so it is there next game night. Clear it any time.
+            </p>
+          </details>
+          <details>
+            <summary>Is this a gambling app?</summary>
+            <p>
+              No. ChipRatio distributes chips and chip values. It does not track pots, winnings, or
+              real money beyond an optional display conversion.
+            </p>
+          </details>
+        </section>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap footer-inner">
+        <p>
+          ChipRatio is free forever. No ads, no signup, no paywall. Built for home poker hosts who
+          would rather deal than do arithmetic.
+        </p>
+        <p class="footer-links">
+          <a href="https://github.com/KarthikSubramanian07/ChipRatio" rel="noopener"
+            >Source on GitHub</a
+          >
+          <span aria-hidden="true">·</span>
+          <span>MIT licensed</span>
+        </p>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
