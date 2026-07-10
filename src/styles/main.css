@@ -135,6 +135,8 @@ p {
 .wrap {
   width: min(1040px, 92vw);
   margin: 0 auto;
+  /* Keeps content clear of the notch/home-indicator safe areas in landscape on iPhone. */
+  padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
 }
 .skip-link {
   position: absolute;
@@ -163,6 +165,8 @@ p {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 14px 0;
 }
 .brand {
@@ -215,6 +219,21 @@ p {
 .theme-button::before {
   content: '◐ ';
   color: var(--accent);
+}
+/* Must come after the base rules above: same specificity, so cascade order decides,
+   and a media block declared before what it overrides would silently lose. */
+@media (max-width: 380px) {
+  .header-actions {
+    gap: 6px;
+  }
+  .free-badge {
+    padding: 4px 8px;
+    font-size: 0.72rem;
+  }
+  .theme-button {
+    padding: 5px 10px;
+    font-size: 0.76rem;
+  }
 }
 
 .site-footer {
@@ -293,6 +312,11 @@ p {
   padding: 20px;
   box-shadow: var(--shadow);
 }
+@media (max-width: 380px) {
+  .panel {
+    padding: 16px;
+  }
+}
 
 /* --- Setup -------------------------------------------------------------------- */
 .setup-row {
@@ -307,6 +331,13 @@ p {
 .field-preset .preset-select {
   max-width: none;
   width: 100%;
+}
+/* Narrow phones (iPhone SE and similar): a select and a three-part counter cannot both
+   fit at half-width without clipping, so stack them instead of squeezing them. */
+@media (max-width: 400px) {
+  .setup-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .set-summary {
@@ -338,7 +369,7 @@ p {
 .col-labels,
 .denom-row {
   display: grid;
-  grid-template-columns: 44px 1fr 132px 40px;
+  grid-template-columns: 48px 1fr 140px 44px;
   gap: 10px;
   align-items: center;
 }
@@ -359,8 +390,8 @@ p {
   margin-bottom: 12px;
 }
 .swatch {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 3px solid color-mix(in srgb, var(--swatch) 60%, #000 20%);
   background:
@@ -411,7 +442,7 @@ input[type='number']::-webkit-inner-spin-button {
 
 .counter {
   display: grid;
-  grid-template-columns: 40px 1fr 40px;
+  grid-template-columns: 44px 1fr 44px;
   gap: 6px;
   align-items: center;
 }
@@ -432,13 +463,15 @@ input[type='number']::-webkit-inner-spin-button {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 }
 .btn.step {
-  padding: 9px 0;
+  padding: 11px 0;
   font-size: 1.15rem;
   line-height: 1;
+  min-height: 44px;
 }
 .btn.icon {
   padding: 8px 0;
   font-size: 1.2rem;
+  min-height: 40px;
 }
 .btn.danger:hover:not(:disabled) {
   border-color: var(--danger);
@@ -640,6 +673,31 @@ input[type='number']::-webkit-inner-spin-button {
   padding: 8px;
   border-radius: var(--radius-sm);
 }
+/* Narrow phones: shrink the chip visuals themselves (not just the grid track), so the
+   count and cash value never get squeezed to nothing. Both the leftover-style fanned
+   stack and the single chip disc are 34px by default; this scales them and their grid
+   columns down together. */
+@media (max-width: 380px) {
+  .stack-row {
+    grid-template-columns: 30px 32px 12px 30px 1fr auto;
+    gap: 6px;
+    padding: 6px;
+  }
+  .chip,
+  .chip-stack,
+  .chip-disc {
+    width: 30px;
+  }
+  .chip {
+    height: 30px;
+  }
+  .chip-stack {
+    height: 42px;
+  }
+  .chip-disc {
+    height: 11px;
+  }
+}
 .stack-row:nth-child(odd) {
   background: var(--surface-2);
 }
@@ -700,6 +758,7 @@ input[type='number']::-webkit-inner-spin-button {
 }
 .schedule-details {
   margin-top: 6px;
+  overflow-x: auto;
 }
 .schedule-details summary {
   cursor: pointer;
