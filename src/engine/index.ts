@@ -15,7 +15,15 @@ import { suggestBuyIn } from './suggest';
 // submodule by tests and scripts, so re-exporting it here again would just be dead API
 // surface.
 export * from './types';
-export { PALETTE, PRESETS, STANDARD_300, cloneSet, colorHex, colorEdge } from './presets';
+export {
+  PALETTE,
+  PRESETS,
+  STANDARD_300,
+  cloneSet,
+  colorHex,
+  colorEdge,
+  matchingPresetId,
+} from './presets';
 export { buildSummary } from './summary';
 export { formatMoney, unevenSmallNote } from './format';
 

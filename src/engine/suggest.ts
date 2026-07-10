@@ -95,11 +95,7 @@ export function suggestBuyIn(
 
 function rationale(depth: number): string {
   const bb = Math.round(depth);
-  if (depth < 40) {
-    return `About ${bb} big blinds deep. On the short side, but it is the most this box can seat evenly.`;
-  }
-  if (depth > 130) {
-    return `About ${bb} big blinds deep, a patient, deep game.`;
-  }
-  return `About ${bb} big blinds deep, with enough small chips to post and change the early blinds.`;
+  if (depth < 40) return `~${bb} BB deep, the most this box seats evenly.`;
+  if (depth > 130) return `~${bb} BB deep, a patient game.`;
+  return `~${bb} BB deep.`;
 }

@@ -15,7 +15,7 @@ describe('suggestBuyIn', () => {
     const depth = s!.buyIn / big;
     expect(depth).toBeGreaterThanOrEqual(40);
     expect(depth).toBeLessThanOrEqual(150);
-    expect(s!.rationale).toMatch(/big blind/i);
+    expect(s!.rationale).toMatch(/BB deep/i);
   });
 
   it('is deterministic', () => {

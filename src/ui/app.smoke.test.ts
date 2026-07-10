@@ -18,23 +18,33 @@ function mount(): HTMLElement {
 describe('app smoke', () => {
   beforeEach(() => localStorage.clear());
 
-  it('renders an editor, game panel, and results on mount', () => {
+  it('renders a minimal setup and an instant result on mount', () => {
     const root = mount();
-    expect(root.querySelector('.editor')).not.toBeNull();
-    expect(root.querySelector('.game')).not.toBeNull();
+    expect(root.querySelector('.setup')).not.toBeNull();
     const total = root.querySelector('.stack-total-value');
     expect(total).not.toBeNull();
     expect(Number(total!.textContent)).toBeGreaterThan(0);
-    // Standard 300 has four denominations.
+
+    // Standard 300 has four denominations, and the preset picker reflects it exactly.
     expect(root.querySelectorAll('.denom-row').length).toBe(4);
-    // The row-by-row editor stays collapsed until asked for, so a new visitor sees
-    // the preset choice and a one-line summary, not four editable rows right away.
-    const details = root.querySelector('.editor-details') as HTMLDetailsElement;
-    expect(details.open).toBe(false);
+    expect((root.querySelector('.preset-select') as HTMLSelectElement).value).toBe('standard-300');
+
+    // Everything but players, chip set, and the mode toggle stays collapsed until asked
+    // for, so a first-time visitor sees two fields and an answer, not a form.
+    const more = root.querySelector('.more-options') as HTMLDetailsElement;
+    expect(more.open).toBe(false);
     expect(root.querySelector('.set-summary')!.textContent).toContain('White');
-    // Suggest mode is the default, so a recommendation shows.
+
+    // Suggest mode is the default, so a recommendation shows immediately.
     expect(root.querySelector('.suggestion')).not.toBeNull();
     expect(root.querySelectorAll('.stack-row').length).toBeGreaterThan(0);
+  });
+
+  it('offers more than one real preset besides the default', () => {
+    const root = mount();
+    const options = [...root.querySelectorAll('.preset-select option')].map((o) => o.textContent);
+    expect(options.length).toBeGreaterThanOrEqual(5); // presets + "Custom"
+    expect(options).toContain('Standard 300');
   });
 
   it('shows the buy-in field when switching to solve mode', () => {
@@ -48,6 +58,16 @@ describe('app smoke', () => {
     expect(buyInField.classList.contains('is-hidden')).toBe(false);
   });
 
+  it('switches the preset select to Custom the moment the set is hand-edited', () => {
+    const root = mount();
+    const preset = root.querySelector('.preset-select') as HTMLSelectElement;
+    expect(preset.value).toBe('standard-300');
+
+    const addBtn = root.querySelector('.add-denom') as HTMLButtonElement;
+    addBtn.click();
+    expect(preset.value).toBe('custom');
+  });
+
   it('adds a denomination when Add a color is clicked', () => {
     const root = mount();
     const before = root.querySelectorAll('.denom-row').length;
@@ -59,7 +79,9 @@ describe('app smoke', () => {
   it('recomputes results when the player count changes', () => {
     const root = mount();
     const firstTotal = root.querySelector('.stack-total-value')!.textContent;
-    const plus = root.querySelector('.game .counter .btn.step:last-child') as HTMLButtonElement;
+    const plus = root.querySelector(
+      '.field-players .counter .btn.step:last-child',
+    ) as HTMLButtonElement;
     plus.click();
     plus.click();
     // The results node is replaced on recompute; it should still be present and valid.
@@ -67,9 +89,12 @@ describe('app smoke', () => {
     expect(firstTotal).toBeTruthy();
   });
 
-  it('renders a blind card with a schedule', () => {
+  it('shows blinds and the schedule inline, not as a separate boxed card', () => {
     const root = mount();
-    expect(root.querySelector('.blind-card')).not.toBeNull();
+    expect(root.querySelector('.result-meta')).not.toBeNull();
     expect(root.querySelector('.schedule')).not.toBeNull();
+    // The old bordered "card" wrapper is gone.
+    expect(root.querySelector('.blind-card')).toBeNull();
+    expect(root.querySelector('.card')).toBeNull();
   });
 });

@@ -2,6 +2,7 @@ import {
   calculate,
   buildSummary,
   cloneSet,
+  matchingPresetId,
   PALETTE,
   PRESETS,
   STANDARD_300,
@@ -21,12 +22,23 @@ import { Store, cryptoId, type AppState } from './state';
 // mutates the store; the store notifies; only the results panel re-renders. The editor
 // itself is rebuilt just on structural changes (add, remove, preset, reset), so typing
 // never steals its own focus.
+//
+// Minimal by default: on load you see two fields (players, chip set) and an instant
+// Smart Suggest result. Everything else (custom chip colors and counts, cash view,
+// stack-size tuning, uneven-small-chips) sits behind one "More options" disclosure.
 
 export function mountApp(root: HTMLElement, store: Store): void {
   const denomList = el('div', { class: 'denom-list' });
   const setSummary = el('p', { class: 'set-summary' });
   const buyInField = el('div', { class: 'field buyin-field' });
   const results = el('div', { class: 'results', attrs: { 'aria-live': 'polite' } });
+
+  // Built once here (not inside buildSetup) so rebuildDenoms can keep it in sync: if the
+  // loaded set does not exactly match a preset, the picker says "Custom" rather than
+  // silently showing a name that no longer describes what is actually in the box.
+  const preset = el('select', { class: 'preset-select', ariaLabel: 'Chip set' });
+  for (const p of PRESETS) preset.append(el('option', { value: p.id }, p.label));
+  preset.append(el('option', { value: 'custom' }, 'Custom'));
 
   const recompute = (): void => {
     const state = store.get();
@@ -40,39 +52,137 @@ export function mountApp(root: HTMLElement, store: Store): void {
       denomList.append(denomRow(store, d, rebuildDenoms, recompute));
     }
     setSummary.textContent = summarizeSet(denoms);
+    preset.value = matchingPresetId(store.get().set);
   };
 
-  const editor = buildEditor(store, denomList, setSummary, rebuildDenoms, recompute);
-  const game = buildGamePanel(store, buyInField, recompute);
+  preset.addEventListener('change', () => {
+    const chosen = PRESETS.find((p) => p.id === preset.value);
+    if (chosen) {
+      store.update({ set: cloneSet(chosen.set) });
+      rebuildDenoms();
+      recompute();
+    }
+  });
 
-  root.append(el('div', { class: 'calc' }, editor, game, results));
+  const setup = buildSetup(
+    store,
+    preset,
+    denomList,
+    setSummary,
+    buyInField,
+    rebuildDenoms,
+    recompute,
+  );
+
+  root.append(el('div', { class: 'calc' }, setup, results));
 
   rebuildDenoms();
   store.subscribe(recompute);
   recompute();
 }
 
-// --- Chip set editor ----------------------------------------------------------
+// --- Setup: players, chip set, buy-in mode, and everything else tucked away --------
 
-function buildEditor(
+function buildSetup(
+  store: Store,
+  preset: HTMLElement,
+  denomList: HTMLElement,
+  setSummary: HTMLElement,
+  buyInField: HTMLElement,
+  rebuildDenoms: () => void,
+  recompute: () => void,
+): HTMLElement {
+  const config = store.get().config;
+
+  const players = counter(
+    config.players,
+    2,
+    (n) => {
+      store.updateConfig({ players: n });
+      recompute();
+    },
+    10,
+  );
+
+  const buyInInput = el('input', {
+    class: 'num',
+    type: 'number',
+    min: 1,
+    value: config.buyIn ?? '',
+    placeholder: 'e.g. 500',
+    ariaLabel: 'Buy-in in chip value',
+    attrs: { inputmode: 'numeric' },
+    on: {
+      input: (e) => {
+        store.updateConfig({ buyIn: readIntOrNull((e.target as HTMLInputElement).value) });
+        recompute();
+      },
+    },
+  });
+  clear(buyInField);
+  buyInField.append(el('label', { class: 'field-label' }, 'Buy-in (in chips)'), buyInInput);
+
+  const applyMode = (mode: 'solve' | 'suggest'): void => {
+    store.updateConfig({ mode });
+    solveBtn.classList.toggle('is-active', mode === 'solve');
+    suggestBtn.classList.toggle('is-active', mode === 'suggest');
+    buyInField.classList.toggle('is-hidden', mode === 'suggest');
+    recompute();
+  };
+
+  const suggestBtn = el(
+    'button',
+    { class: 'seg', type: 'button', on: { click: () => applyMode('suggest') } },
+    'Suggest a game',
+  );
+  const solveBtn = el(
+    'button',
+    { class: 'seg', type: 'button', on: { click: () => applyMode('solve') } },
+    'I have a buy-in',
+  );
+  const segmented = el(
+    'div',
+    { class: 'segmented', role: 'group', ariaLabel: 'Buy-in mode' },
+    suggestBtn,
+    solveBtn,
+  );
+  suggestBtn.classList.toggle('is-active', config.mode === 'suggest');
+  solveBtn.classList.toggle('is-active', config.mode === 'solve');
+  buyInField.classList.toggle('is-hidden', config.mode === 'suggest');
+
+  return el(
+    'section',
+    { class: 'panel setup' },
+    el(
+      'div',
+      { class: 'setup-row' },
+      el(
+        'label',
+        { class: 'field field-players' },
+        el('span', { class: 'field-label' }, 'Players'),
+        players,
+      ),
+      el(
+        'label',
+        { class: 'field field-preset' },
+        el('span', { class: 'field-label' }, 'Chips'),
+        preset,
+      ),
+    ),
+    segmented,
+    buyInField,
+    buildMoreOptions(store, denomList, setSummary, rebuildDenoms, recompute),
+  );
+}
+
+function buildMoreOptions(
   store: Store,
   denomList: HTMLElement,
   setSummary: HTMLElement,
   rebuildDenoms: () => void,
   recompute: () => void,
 ): HTMLElement {
-  const preset = el('select', { class: 'preset-select', ariaLabel: 'Load a preset chip set' });
-  preset.append(el('option', { value: 'custom' }, 'Presets'));
-  for (const p of PRESETS)
-    preset.append(el('option', { value: p.id }, `${p.label} (${p.description})`));
-  preset.addEventListener('change', () => {
-    const chosen = PRESETS.find((p) => p.id === preset.value);
-    if (chosen) {
-      store.update({ set: cloneSet(chosen.set) });
-      rebuildDenoms();
-    }
-    preset.value = 'custom';
-  });
+  const config = store.get().config;
 
   const addBtn = el(
     'button',
@@ -107,20 +217,42 @@ function buildEditor(
     'Reset set',
   );
 
+  const symbolInput = el('input', {
+    class: 'num symbol-input',
+    value: store.get().moneySymbol,
+    ariaLabel: 'Currency symbol',
+    attrs: { maxlength: '3' },
+    on: {
+      input: (e) => {
+        store.update({ moneySymbol: (e.target as HTMLInputElement).value.slice(0, 3) || '$' });
+        recompute();
+      },
+    },
+  });
+  const cashInput = el('input', {
+    class: 'num',
+    type: 'number',
+    min: 0,
+    value: config.moneyBuyIn ?? '',
+    placeholder: 'optional',
+    ariaLabel: 'Real cash buy-in per player',
+    attrs: { inputmode: 'decimal' },
+    on: {
+      input: (e) => {
+        store.updateConfig({ moneyBuyIn: readFloatOrNull((e.target as HTMLInputElement).value) });
+        recompute();
+      },
+    },
+  });
+
   return el(
-    'section',
-    { class: 'panel editor' },
+    'details',
+    { class: 'more-options' },
+    el('summary', {}, 'More options'),
     el(
       'div',
-      { class: 'panel-head' },
-      el('h2', {}, 'Your chip set'),
-      el('div', { class: 'panel-head-actions' }, preset, resetBtn),
-    ),
-    setSummary,
-    el(
-      'details',
-      { class: 'editor-details' },
-      el('summary', {}, 'Customize colors, values, and counts'),
+      { class: 'more-body' },
+      setSummary,
       el(
         'div',
         { class: 'col-labels' },
@@ -130,7 +262,31 @@ function buildEditor(
         el('span', {}, ''),
       ),
       denomList,
-      addBtn,
+      el('div', { class: 'more-actions' }, addBtn, resetBtn),
+      el(
+        'label',
+        { class: 'field-label' },
+        'Cash per player',
+        el('div', { class: 'cash-row' }, symbolInput, cashInput),
+      ),
+      el(
+        'label',
+        { class: 'field-label' },
+        'Stack size (chips)',
+        counter(
+          config.targetStackChips,
+          8,
+          (n) => {
+            store.updateConfig({ targetStackChips: n });
+            recompute();
+          },
+          80,
+        ),
+      ),
+      toggle('Allow uneven small chips', config.allowUnevenSmallChips, (on) => {
+        store.updateConfig({ allowUnevenSmallChips: on });
+        recompute();
+      }),
     ),
   );
 }
@@ -211,159 +367,13 @@ function denomRow(
   );
 }
 
-// --- Game inputs --------------------------------------------------------------
-
-function buildGamePanel(store: Store, buyInField: HTMLElement, recompute: () => void): HTMLElement {
-  const config = store.get().config;
-
-  const players = counter(
-    config.players,
-    2,
-    (n) => {
-      store.updateConfig({ players: n });
-      recompute();
-    },
-    10,
-  );
-
-  const buyInInput = el('input', {
-    class: 'num',
-    type: 'number',
-    min: 1,
-    value: config.buyIn ?? '',
-    placeholder: 'e.g. 500',
-    ariaLabel: 'Buy-in in chip value',
-    attrs: { inputmode: 'numeric' },
-    on: {
-      input: (e) => {
-        store.updateConfig({ buyIn: readIntOrNull((e.target as HTMLInputElement).value) });
-        recompute();
-      },
-    },
-  });
-  clear(buyInField);
-  buyInField.append(el('label', { class: 'field-label' }, 'Buy-in (in chips)'), buyInInput);
-
-  const applyMode = (mode: 'solve' | 'suggest'): void => {
-    store.updateConfig({ mode });
-    solveBtn.classList.toggle('is-active', mode === 'solve');
-    suggestBtn.classList.toggle('is-active', mode === 'suggest');
-    buyInField.classList.toggle('is-hidden', mode === 'suggest');
-    recompute();
-  };
-
-  const solveBtn = el(
-    'button',
-    { class: 'seg', type: 'button', on: { click: () => applyMode('solve') } },
-    'I have a buy-in',
-  );
-  const suggestBtn = el(
-    'button',
-    { class: 'seg', type: 'button', on: { click: () => applyMode('suggest') } },
-    'Suggest a good game',
-  );
-  const segmented = el(
-    'div',
-    { class: 'segmented', role: 'group', ariaLabel: 'Buy-in mode' },
-    solveBtn,
-    suggestBtn,
-  );
-  solveBtn.classList.toggle('is-active', config.mode === 'solve');
-  suggestBtn.classList.toggle('is-active', config.mode === 'suggest');
-  buyInField.classList.toggle('is-hidden', config.mode === 'suggest');
-
-  // Optional cash mapping.
-  const symbolInput = el('input', {
-    class: 'num symbol-input',
-    value: store.get().moneySymbol,
-    ariaLabel: 'Currency symbol',
-    attrs: { maxlength: '3' },
-    on: {
-      input: (e) => {
-        store.update({ moneySymbol: (e.target as HTMLInputElement).value.slice(0, 3) || '$' });
-        recompute();
-      },
-    },
-  });
-  const cashInput = el('input', {
-    class: 'num',
-    type: 'number',
-    min: 0,
-    value: config.moneyBuyIn ?? '',
-    placeholder: 'optional',
-    ariaLabel: 'Real cash buy-in per player',
-    attrs: { inputmode: 'decimal' },
-    on: {
-      input: (e) => {
-        store.updateConfig({ moneyBuyIn: readFloatOrNull((e.target as HTMLInputElement).value) });
-        recompute();
-      },
-    },
-  });
-
-  const advanced = el(
-    'details',
-    { class: 'advanced' },
-    el('summary', {}, 'Fine tuning'),
-    el(
-      'div',
-      { class: 'advanced-body' },
-      el(
-        'label',
-        { class: 'field-label' },
-        'Cash per player',
-        el('div', { class: 'cash-row' }, symbolInput, cashInput),
-      ),
-      el(
-        'label',
-        { class: 'field-label' },
-        'Preferred stack size (chips)',
-        counter(
-          config.targetStackChips,
-          8,
-          (n) => {
-            store.updateConfig({ targetStackChips: n });
-            recompute();
-          },
-          80,
-        ),
-      ),
-      toggle(
-        'Let the smallest chip vary by one to hit the exact buy-in',
-        config.allowUnevenSmallChips,
-        (on) => {
-          store.updateConfig({ allowUnevenSmallChips: on });
-          recompute();
-        },
-      ),
-    ),
-  );
-
-  return el(
-    'section',
-    { class: 'panel game' },
-    el('h2', {}, 'The game'),
-    el('div', { class: 'field' }, el('span', { class: 'field-label' }, 'Players'), players),
-    el('div', { class: 'field' }, el('span', { class: 'field-label' }, 'Buy-in mode'), segmented),
-    buyInField,
-    advanced,
-  );
-}
-
 // --- Results ------------------------------------------------------------------
 
 function renderResults(container: HTMLElement, r: Result, state: AppState, store: Store): void {
   clear(container);
 
   if (!r.ok) {
-    container.append(
-      el(
-        'div',
-        { class: 'panel results-panel empty' },
-        el('h2', {}, 'Not quite'),
-        warningList(r.warnings),
-      ),
-    );
+    container.append(el('div', { class: 'panel results-panel empty' }, warningList(r.warnings)));
     return;
   }
 
@@ -384,19 +394,10 @@ function renderResults(container: HTMLElement, r: Result, state: AppState, store
     el(
       'div',
       { class: 'result-head' },
-      el(
-        'div',
-        {},
-        el('h2', {}, 'Every player gets'),
-        el('p', { class: 'muted' }, `${r.totalChipsPerPlayer} chips per stack`),
-      ),
-      el(
-        'div',
-        { class: 'stack-total' },
-        el('span', { class: 'stack-total-value' }, String(r.stackValue)),
-        el('span', { class: 'stack-total-label' }, moneyLabel(r, state.moneySymbol) ?? 'in chips'),
-      ),
+      el('span', { class: 'stack-total-value' }, String(r.stackValue)),
+      el('span', { class: 'stack-total-label' }, moneyLabel(r, state.moneySymbol) ?? 'in chips'),
     ),
+    el('p', { class: 'muted result-sub' }, `${r.totalChipsPerPlayer} chips per player`),
   );
 
   const stacks = el('div', { class: 'stacks' });
@@ -427,15 +428,45 @@ function renderResults(container: HTMLElement, r: Result, state: AppState, store
     panel.append(el('p', { class: 'uneven-note' }, unevenSmallNote(r.unevenSmall)));
   }
 
-  if (r.blinds) panel.append(blindCard(r));
-  if (r.leftover.length > 0) panel.append(leftoverCard(r));
+  if (r.blinds || r.leftover.length > 0) panel.append(resultMeta(r));
+  if (r.blinds) panel.append(scheduleDetails(r));
   if (r.warnings.length > 0) panel.append(warningList(r.warnings));
 
   panel.append(copyBar(r, state, store));
   container.append(panel);
 }
 
-function blindCard(r: Result): HTMLElement {
+/** One compact line for blinds and leftover, replacing what used to be two boxed cards. */
+function resultMeta(r: Result): HTMLElement {
+  const row = el('div', { class: 'result-meta' });
+
+  if (r.blinds) {
+    const b = r.blinds;
+    row.append(
+      el(
+        'span',
+        { class: 'meta-item' },
+        el('strong', {}, `${b.small} / ${b.big}`),
+        ` blinds · ${Math.round(b.startingBBDepth)} BB`,
+      ),
+    );
+  }
+
+  if (r.leftover.length > 0) {
+    const chips = el('span', { class: 'meta-chips' });
+    for (const p of r.leftover) {
+      chips.append(
+        chipEl(p.color, p.value),
+        el('span', { class: 'meta-chip-count' }, `${p.count}`),
+      );
+    }
+    row.append(el('span', { class: 'meta-item' }, 'Left in box: ', chips));
+  }
+
+  return row;
+}
+
+function scheduleDetails(r: Result): HTMLElement {
   const b = r.blinds!;
   const schedule = el('table', { class: 'schedule' });
   schedule.append(
@@ -458,43 +489,11 @@ function blindCard(r: Result): HTMLElement {
     );
   }
   schedule.append(body);
-
   return el(
-    'div',
-    { class: 'card blind-card' },
-    el(
-      'div',
-      { class: 'blind-head' },
-      el('h3', {}, 'Blinds'),
-      el(
-        'div',
-        { class: 'blind-now' },
-        el('span', { class: 'blind-big' }, `${b.small} / ${b.big}`),
-        el('span', { class: 'muted' }, `${Math.round(b.startingBBDepth)} big blinds deep`),
-      ),
-    ),
-    el('details', { class: 'schedule-wrap' }, el('summary', {}, 'Escalating schedule'), schedule),
-  );
-}
-
-function leftoverCard(r: Result): HTMLElement {
-  const row = el('div', { class: 'leftover-row' });
-  for (const p of r.leftover) {
-    row.append(
-      el(
-        'span',
-        { class: 'leftover-chip' },
-        chipEl(p.color, p.value),
-        el('span', {}, `${p.count}`),
-      ),
-    );
-  }
-  return el(
-    'div',
-    { class: 'card leftover-card' },
-    el('h3', {}, 'Left in the box'),
-    el('p', { class: 'muted' }, 'For rebuys, late arrivals, and color-ups.'),
-    row,
+    'details',
+    { class: 'schedule-details' },
+    el('summary', {}, 'Blind schedule'),
+    schedule,
   );
 }
 
@@ -674,7 +673,7 @@ function addDenom(store: Store): void {
 
 // --- Formatting helpers -------------------------------------------------------
 
-/** One-line recap shown above the collapsed editor, e.g. "100 white (1), 100 red (5)...". */
+/** One-line recap shown above the chip rows, e.g. "100 White (1), 100 Red (5)...". */
 function summarizeSet(denoms: Denom[]): string {
   if (denoms.length === 0) return 'No chips yet.';
   const label = (color: string): string => PALETTE.find((c) => c.key === color)?.label ?? color;
