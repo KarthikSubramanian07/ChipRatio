@@ -31,6 +31,10 @@ jobs:
         run: echo "has_token=${{ secrets.CLOUDFLARE_API_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
       - name: Deploy to Cloudflare Pages
         if: steps.check.outputs.has_token == 'true'
+        # A bad or expired credential shouldn't turn the whole workflow red: the site
+        # is a static build with nothing else riding on this step, and the person who
+        # notices should be looking at the run log for this step, not a failing badge.
+        continue-on-error: true
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
