@@ -12,11 +12,11 @@
     <title>ChipRatio: Poker Chip Calculator for Home Games</title>
     <meta
       name="description"
-      content="Enter your poker chip set, players, and buy-in. ChipRatio hands every player an identical, exact chip stack plus a blind structure, instantly. Free forever, no ads, no signup."
+      content="Poker chip calculator for home games. Enter your chips, players, and buy-in. Get even stacks, chip values in real money (10¢, 50¢, $5, never 28¢), and blinds. Cash games and tournaments. Free forever, no ads, no signup."
     />
     <meta
       name="keywords"
-      content="poker chip calculator, poker chip distribution calculator, how many poker chips per player, poker chip values calculator, home poker chip setup, poker chip calculator free, poker blind structure calculator"
+      content="poker chip calculator, poker chip distribution calculator, how many poker chips per player, poker chip values for a $20 buy-in, cash game chip values, home poker tournament chips, poker blind structure calculator"
     />
     <link rel="canonical" href="https://chipratio.pages.dev/" />
     <meta name="robots" content="index, follow" />
@@ -25,7 +25,7 @@
     <meta property="og:title" content="ChipRatio: Poker Chip Calculator for Home Games" />
     <meta
       property="og:description"
-      content="Enter your chip set, get perfect equal stacks and a blind structure, instantly. Free forever, no ads, no signup."
+      content="Enter your chips, players, and buy-in. Get even stacks, chip values that make sense, and blinds. Free forever, no ads, no signup."
     />
     <meta property="og:url" content="https://chipratio.pages.dev/" />
     <meta property="og:image" content="https://chipratio.pages.dev/og.svg" />
@@ -34,7 +34,7 @@
     <meta name="twitter:title" content="ChipRatio: Poker Chip Calculator for Home Games" />
     <meta
       name="twitter:description"
-      content="Enter your chip set, get perfect equal stacks and a blind structure, instantly. Free forever."
+      content="Even stacks, chip values that make sense, and blinds for your home game. Free forever."
     />
     <meta name="twitter:image" content="https://chipratio.pages.dev/og.svg" />
 
@@ -44,7 +44,7 @@
         "@type": "WebApplication",
         "name": "ChipRatio",
         "url": "https://chipratio.pages.dev/",
-        "description": "A free poker chip calculator that turns your chip set, player count, and buy-in into identical, exact per-player stacks and a blind structure.",
+        "description": "A free poker chip calculator that turns your chip set, player count, and buy-in into identical per-player stacks, real-money chip values, and blinds, for cash games and tournaments.",
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Any",
         "browserRequirements": "Requires JavaScript",
@@ -62,15 +62,15 @@
             "name": "How many poker chips should each player get?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "For a home tournament, aim for 30 to 50 chips per player in a pyramid: many small chips, fewer large ones. ChipRatio builds exactly that from your set and buy-in."
+              "text": "Around 30 chips per player works for most home games: plenty of the smallest chip for blinds, fewer of each bigger one. ChipRatio builds that from the chips you own, in counts you can deal in fives."
             }
           },
           {
             "@type": "Question",
-            "name": "What are the standard poker chip values by color?",
+            "name": "What should each chip be worth in a $20 cash game?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "The common convention is white 1, red 5, green 25, black 100, and purple 500. Values vary by venue, so ChipRatio lets you set your own."
+              "text": "With a standard white 1, red 5, green 25, black 100 set, make white 10 cents, red 50 cents, green $2.50 and black $10, with 10 cent and 20 cent blinds. That starts everyone 100 big blinds deep. ChipRatio works this out for any buy-in and any set."
             }
           },
           {
@@ -105,7 +105,11 @@
 
     <main class="wrap">
       <section class="hero">
-        <h1>Split poker chips perfectly, instantly</h1>
+        <h1>Split your poker chips in seconds</h1>
+        <p class="hero-sub">
+          Pick your game, players, and buy-in. Get even stacks, chip values that make sense, and the
+          blinds.
+        </p>
       </section>
 
       <!-- The calculator mounts here. It is fully client side and needs JavaScript. -->
@@ -119,22 +123,32 @@
 
       <!-- Static, crawlable content. Real answers, not filler. -->
       <section class="prose" aria-labelledby="how-heading">
-        <h2 id="how-heading">How ChipRatio splits your chips</h2>
+        <h2 id="how-heading">Cash game or tournament?</h2>
         <p>
-          Every player gets an identical stack, so per color the most anyone can receive is the
-          number in the box divided by the player count. Inside those limits ChipRatio searches for
-          the stack that hits your buy-in exactly and looks like a proper pyramid: plenty of the
-          smallest chip to post and change the blinds, fewer of each larger one, a couple of big
-          chips to keep the pile small. If the exact buy-in is not reachable with equal stacks, it
-          snaps to the nearest value and tells you.
+          In a <strong>cash game</strong> chips are money. Everyone buys in for the same amount, and
+          each color has a price: white 10¢, red 50¢, and so on. You can cash out any time, and the
+          blinds never change. In a <strong>tournament</strong> chips are just points. Everyone pays
+          in once, starts with the same stack, the blinds go up on a timer, and play ends when one
+          player has every chip.
         </p>
 
-        <h2>Poker chip values by color</h2>
+        <h2>Why the numbers are always round</h2>
         <p>
-          The widely used convention is white 1, red 5, green 25, black 100, and purple 500. It is a
-          convention, not a law, so ChipRatio ships those as defaults and lets you set any color and
-          value you like. The math works in abstract chip value, and the optional cash column is
-          pure display arithmetic. ChipRatio never touches real money.
+          Dividing a $20 buy-in by a pile of chips gives answers like 28¢ a chip, which nobody can
+          make change with. ChipRatio goes the other way. It only considers chip prices that are
+          real money (5¢, 10¢, 25¢, 50¢, $1, $5 ...), keeps the ratios printed on your chips, and
+          picks the price that deals the tidiest stack. Counts come out in numbers you can count
+          from a rack, tournament stacks land on 500 or 1,000 rather than 1,096, and blinds follow
+          the familiar 5/10, 10/20, 25/50 ladder.
+        </p>
+
+        <h2>How it splits your chips</h2>
+        <p>
+          Every player gets an identical stack, so for each color the most anyone can receive is the
+          number in the case divided by the player count. Inside that limit ChipRatio checks every
+          stack that adds up to your buy-in and keeps the best one: plenty of the smallest chip for
+          blinds, fewer of each bigger one, and around 30 chips in total. It also tells you what
+          stays in the case and how many rebuys that covers.
         </p>
 
         <section class="faq" aria-labelledby="faq-heading">
@@ -142,31 +156,37 @@
           <details>
             <summary>How many chips should each player start with?</summary>
             <p>
-              For a home tournament, 30 to 50 chips per player feels right. Enough to stack neatly,
-              not so many that the table looks like a bank heist. ChipRatio targets that range
-              automatically.
+              About 30 is the sweet spot for a home game: enough to bet in small steps, not so many
+              that stacks topple. Want bigger or smaller stacks? Change it under More options.
             </p>
           </details>
           <details>
-            <summary>What if my buy-in is not reachable with equal stacks?</summary>
+            <summary>What if my chips cannot make my buy-in exactly?</summary>
             <p>
-              ChipRatio snaps to the nearest value it can build fairly and flags it. Turn on uneven
-              small chips and it will let the smallest denomination differ by one between players to
-              land the exact table total. That is the only difference it will ever introduce.
+              ChipRatio tries every sensible chip price first, so this is rare. When a case really
+              cannot do it (too few chips for too many players), it uses the closest round amount it
+              can deal evenly and tells you why.
+            </p>
+          </details>
+          <details>
+            <summary>My chips have no numbers printed on them. What do I enter?</summary>
+            <p>
+              Use the classic convention: white 1, red 5, green 25, black 100. For a cash game the
+              printed numbers only set the ratio between colors, ChipRatio picks the real prices.
             </p>
           </details>
           <details>
             <summary>Do you store my chip set or track me?</summary>
             <p>
               No accounts, no servers, no analytics for sale. Your last set is saved in your own
-              browser so it is there next game night. Clear it any time.
+              browser so it is there next game night.
             </p>
           </details>
           <details>
             <summary>Is this a gambling app?</summary>
             <p>
-              No. ChipRatio distributes chips and chip values. It does not track pots, winnings, or
-              real money beyond an optional display conversion.
+              No. ChipRatio divides a chip case. It does not track pots, winnings, or hold any
+              money.
             </p>
           </details>
         </section>
