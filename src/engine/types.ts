@@ -1,16 +1,16 @@
-// ChipRatio engine — public types.
+// ChipRatio engine, public types.
 //
-// The engine speaks in abstract chip *values* (1, 5, 25, 100, ...). Real money is
-// a thin display layer bolted on at the end (see money.ts). Nothing in here knows
-// or cares about dollars, pots, or winnings. It distributes chips. That is the job.
+// Two games, two units. A cash game is priced in real money, so every amount in the
+// result is whole cents. A tournament is priced in chip value, so every amount is chip
+// value. Nothing in here holds, moves, or touches real money: it divides a chip case.
 
 /** A single chip denomination, as it sits in the physical box. */
 export interface Denom {
   /** Stable id, unique within a set. Used to map results back to the UI. */
   id: string;
-  /** Display color: a hex string or a key into the palette (see presets.ts). */
+  /** Display color: a key into the palette (see presets.ts). */
   color: string;
-  /** Abstract chip value. Must be a positive integer. */
+  /** The value printed on the chip (or the ratio you treat it as). Positive integer. */
   value: number;
   /** How many of this chip exist in the box, total. Non-negative integer. */
   count: number;
@@ -21,33 +21,40 @@ export interface ChipSet {
   denominations: Denom[];
 }
 
-export type Mode = 'solve' | 'suggest';
+/**
+ * Cash game: chips stand for money, everyone buys in for the same amount, blinds stay put.
+ * Tournament: chips are points, everyone starts with the same stack, blinds go up.
+ */
+export type GameType = 'cash' | 'tournament';
 
 export interface Config {
-  /** Number of players, 2..10 (the engine clamps and warns outside that). */
+  /** Number of players, 2..12 (the engine clamps and says so). */
   players: number;
-  /** 'solve' needs a buyIn. 'suggest' picks a good one for you. */
-  mode: Mode;
-  /** Chip-value buy-in per player. Required in 'solve' mode, ignored in 'suggest'. */
-  buyIn: number | null;
-  /** Optional real cash per player. Display only, never touched by the math. */
-  moneyBuyIn: number | null;
-  /** Preferred physical stack size (chip count). A soft target, not a hard rule. */
-  targetStackChips: number;
+  game: GameType;
+  /** Cash game: what each player pays, in whole cents. */
+  buyInCents: number | null;
   /**
-   * Opt-in. When an exact identical stack for the buy-in is impossible, let the
-   * SMALLEST denomination differ by at most one chip between players so the table
-   * total lands on the exact buy-in. This is the only asymmetry ChipRatio allows.
+   * Cash game: pin what the smallest chip is worth, in cents. Null lets ChipRatio pick the
+   * value that makes the tidiest stack.
    */
-  allowUnevenSmallChips: boolean;
+  smallestChipCents: number | null;
+  /** Tournament: starting stack in chip value. Null lets ChipRatio pick a round one. */
+  startingStack: number | null;
+  /** Preferred number of chips per player. A soft target, not a hard rule. */
+  targetStackChips: number;
+  /** Currency symbol used in cash-game wording. Display only. */
+  currency: string;
 }
 
-/** A count of one denomination in a stack (or in the leftover box). */
-export interface PerPlayerChip {
+/** One denomination's worth of chips, in a stack or in what is left in the box. */
+export interface StackChip {
   denomId: string;
   color: string;
+  /** The value printed on the chip. */
   value: number;
   count: number;
+  /** Cash game only: what one of these chips is worth, in cents. Null in a tournament. */
+  cents: number | null;
 }
 
 export interface BlindLevel {
@@ -56,30 +63,24 @@ export interface BlindLevel {
   big: number;
 }
 
+/** Blinds in the result's unit: cents for a cash game, chip value for a tournament. */
 export interface Blinds {
   small: number;
   big: number;
-  /** buyIn / bigBlind. The number of big blinds each player starts with. */
+  /** stack / bigBlind. How many big blinds each player starts with. */
   startingBBDepth: number;
-  /** Optional escalating schedule for tournament play. */
+  /** Escalating levels. Empty for a cash game, where blinds never move. */
   schedule: BlindLevel[];
 }
 
-export interface MoneyBreakdown {
-  /** Cash value of one chip-value unit: moneyBuyIn / buyIn. */
-  perChipValue: number;
-  denomCash: { denomId: string; value: number; cash: number }[];
-}
-
 export type WarningCode =
-  | 'buyin-snapped'
-  | 'shallow-stack'
+  | 'amount-adjusted'
+  | 'short-stack'
   | 'deep-stack'
   | 'few-small-chips'
-  | 'granularity-limited'
+  | 'thin-stack'
   | 'not-enough-chips'
-  | 'infeasible'
-  | 'uneven-small-chips'
+  | 'chip-value-ignored'
   | 'input';
 
 export interface Warning {
@@ -87,33 +88,25 @@ export interface Warning {
   message: string;
 }
 
-/** Describes the single permitted asymmetry when allowUnevenSmallChips kicks in. */
-export interface UnevenSmall {
-  denomId: string;
-  /** This many players get one extra of the smallest chip; the rest get the base count. */
-  extraPlayers: number;
-  /** Base count of the smallest chip every player gets. */
-  baseCount: number;
-}
-
 export interface Result {
-  /** True when a usable stack was produced (even if the buy-in had to be snapped). */
+  /** True when a usable stack was produced (even if the amount had to be adjusted). */
   ok: boolean;
-  /** What each player receives. Identical across players unless unevenSmall is set. */
-  perPlayer: PerPlayerChip[];
-  /** Value of one player's stack. Equals the (possibly snapped) buy-in. */
+  game: GameType;
+  /** What each player receives. Identical for every player, always. */
+  perPlayer: StackChip[];
+  /** One stack's worth: cents in a cash game, chip value in a tournament. */
   stackValue: number;
-  /** The buy-in the caller asked for, before any snapping. */
-  requestedBuyIn: number | null;
+  /** What the caller asked for, same unit. Null when ChipRatio picked the amount. */
+  requested: number | null;
+  /** True when ChipRatio chose the amount instead of the host. */
+  autoPicked: boolean;
   totalChipsPerPlayer: number;
-  /** Chips still in the box after dealing every stack. For rebuys and color-ups. */
-  leftover: PerPlayerChip[];
-  unevenSmall: UnevenSmall | null;
+  /** Chips still in the box after dealing every stack. For rebuys and late arrivals. */
+  leftover: StackChip[];
+  /** How many more identical stacks the leftover chips can build. */
+  rebuys: number;
   blinds: Blinds | null;
-  money: MoneyBreakdown | null;
-  /** Set in 'suggest' mode: the buy-in ChipRatio picked, with a one-line why. */
-  suggestion: { buyIn: number; rationale: string } | null;
   warnings: Warning[];
-  /** The internal quality score of the chosen stack. Higher is better. Debug/tuning aid. */
+  /** The internal quality score of the chosen stack. Higher is better. Tuning aid. */
   quality: number;
 }

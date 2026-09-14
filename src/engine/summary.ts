@@ -1,27 +1,18 @@
-import type { Result } from './types';
-import { PALETTE } from './presets';
-import { formatMoney, unevenSmallNote } from './format';
+import type { Config, Result } from './types';
+import { colorName, formatAmount, formatNumber, plural } from './format';
 
-// Builds the plain-text "Copy summary" a host can paste into a group chat. Deliberately
-// low-tech: no tables, no unicode art, just lines that read fine anywhere. No em dashes.
+// Builds the plain-text "Copy for the group chat" block. Deliberately low-tech: no tables,
+// no unicode art, just lines that read fine in any messaging app. No em dashes.
 
-export interface SummaryOptions {
-  players: number;
-  /** Currency symbol for the money line, when a cash buy-in was set. Defaults to '$'. */
-  moneySymbol?: string;
-}
-
-function chipLabel(color: string, value: number): string {
-  const known = PALETTE.find((c) => c.key === color);
-  const name = known ? known.label : color;
-  return `${name} (${value})`;
-}
-
-export function buildSummary(result: Result, opts: SummaryOptions): string {
-  const sym = opts.moneySymbol ?? '$';
+export function buildSummary(result: Result, config: Pick<Config, 'players' | 'currency'>): string {
+  const sym = config.currency || '$';
+  const game = result.game;
+  const amount = (n: number): string => formatAmount(n, game, sym);
   const lines: string[] = [];
 
-  lines.push(`ChipRatio: ${opts.players}-handed game`);
+  lines.push(
+    `Poker night: ${config.players} players, ${game === 'cash' ? 'cash game' : 'tournament'}`,
+  );
 
   if (!result.ok) {
     lines.push('');
@@ -31,48 +22,48 @@ export function buildSummary(result: Result, opts: SummaryOptions): string {
     return lines.join('\n');
   }
 
-  const buyInLine =
-    result.money !== null
-      ? `Buy-in: ${result.stackValue} in chips (${formatMoney(sym, result.money.perChipValue * result.stackValue)})`
-      : `Buy-in: ${result.stackValue} in chips`;
-  lines.push(buyInLine);
-
-  if (result.suggestion) lines.push(`Suggested: ${result.suggestion.rationale}`);
+  lines.push(
+    game === 'cash'
+      ? `Buy-in: ${amount(result.stackValue)} each`
+      : `Starting stack: ${amount(result.stackValue)}`,
+  );
 
   lines.push('');
-  lines.push(`Each player gets (${result.totalChipsPerPlayer} chips):`);
+  lines.push(`Everyone gets ${plural(result.totalChipsPerPlayer, 'chip')}:`);
   for (const p of result.perPlayer) {
-    const cash = result.money
-      ? `  (${formatMoney(sym, p.value * result.money.perChipValue)} each)`
-      : '';
-    lines.push(`  ${p.count} x ${chipLabel(p.color, p.value)} = ${p.count * p.value}${cash}`);
-  }
-
-  if (result.unevenSmall) {
-    lines.push(`  (${unevenSmallNote(result.unevenSmall)})`);
+    const worth = game === 'cash' ? (p.cents as number) : p.value;
+    const each = game === 'cash' ? ` (${amount(worth)} each)` : ` (${formatNumber(worth)})`;
+    lines.push(`  ${p.count} ${colorName(p.color)}${each} = ${amount(worth * p.count)}`);
   }
 
   if (result.blinds) {
+    const b = result.blinds;
     lines.push('');
-    lines.push(
-      `Blinds: ${result.blinds.small} / ${result.blinds.big} (about ${Math.round(result.blinds.startingBBDepth)} big blinds deep)`,
-    );
+    if (game === 'cash') {
+      lines.push(`Blinds: ${amount(b.small)} / ${amount(b.big)}`);
+    } else {
+      lines.push(`Blinds start at ${amount(b.small)} / ${amount(b.big)}, then go up:`);
+      lines.push(`  ${b.schedule.map((l) => `${amount(l.small)}/${amount(l.big)}`).join(', ')}`);
+    }
   }
 
   if (result.leftover.length > 0) {
     lines.push('');
-    lines.push('Left in the box:');
-    for (const p of result.leftover) {
-      lines.push(`  ${p.count} x ${chipLabel(p.color, p.value)}`);
-    }
+    const left = result.leftover.map((p) => `${p.count} ${colorName(p.color)}`).join(', ');
+    const rebuys =
+      result.rebuys > 0
+        ? ` (enough for ${plural(result.rebuys, 'rebuy')})`
+        : ' (not enough for a rebuy)';
+    lines.push(`Left in the case: ${left}${rebuys}`);
   }
 
-  if (result.warnings.length > 0) {
+  const notes = result.warnings.filter((w) => w.code !== 'input');
+  if (notes.length > 0) {
     lines.push('');
-    for (const w of result.warnings) lines.push(`! ${w.message}`);
+    for (const w of notes) lines.push(`! ${w.message}`);
   }
 
   lines.push('');
-  lines.push('Built with ChipRatio, chipratio.pages.dev');
+  lines.push('Split with ChipRatio: chipratio.pages.dev');
   return lines.join('\n');
 }
