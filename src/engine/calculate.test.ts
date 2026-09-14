@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculate, DEFAULT_CONFIG } from './index';
-import { STANDARD_300, STANDARD_500, STARTER_100 } from './presets';
+import { DEFAULT_SET, STANDARD_300, STANDARD_500, STARTER_100 } from './presets';
 import type { ChipSet, Config } from './types';
 
 function cfg(over: Partial<Config>): Config {
@@ -136,5 +136,23 @@ describe('calculate: shared behavior', () => {
       const r = calculate(STARTER_100, cfg({ game, players: 10, startingStack: 99999 }));
       for (const w of r.warnings) expect(w.message).not.toMatch(/[\u2013\u2014]/);
     }
+  });
+});
+
+describe('calculate: the first-open default', () => {
+  it('deals a $20 stack from five colors with no chip over $2', () => {
+    const r = calculate(DEFAULT_SET, DEFAULT_CONFIG);
+    expect(DEFAULT_SET.denominations.map((d) => d.color)).toContain('blue');
+    expect(DEFAULT_SET.denominations).toHaveLength(5);
+    expect(r.stackValue).toBe(2000);
+    expect(r.perPlayer.map((p) => [p.color, p.count, p.cents])).toEqual([
+      ['white', 15, 10],
+      ['red', 5, 20],
+      ['blue', 5, 50],
+      ['green', 5, 100],
+      ['black', 5, 200],
+    ]);
+    expect(r.blinds).toMatchObject({ small: 10, big: 20 });
+    expect(r.warnings).toEqual([]);
   });
 });

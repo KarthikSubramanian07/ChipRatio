@@ -7,7 +7,7 @@ describe('buildSummary', () => {
   it('renders a cash game a friend can read in a group chat', () => {
     const r = calculate(STANDARD_300, DEFAULT_CONFIG);
     const text = buildSummary(r, DEFAULT_CONFIG);
-    expect(text).toContain('6 players, cash game');
+    expect(text).toContain('5 players, cash game');
     expect(text).toContain('Buy-in: $20 each');
     expect(text).toContain('White (10¢ each)');
     expect(text).toContain('Blinds: 10¢ / 20¢');
