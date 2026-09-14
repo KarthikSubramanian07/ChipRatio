@@ -66,6 +66,51 @@ export const STANDARD_500: ChipSet = {
   ],
 };
 
+/** Starter 100-piece set: 20 each of white (1), red (5), green (25), black (100), yellow (500). */
+export const STARTER_100: ChipSet = {
+  denominations: [
+    denom('w', 'white', 1, 20),
+    denom('r', 'red', 5, 20),
+    denom('g', 'green', 25, 20),
+    denom('b', 'black', 100, 20),
+    denom('y', 'yellow', 500, 20),
+  ],
+};
+
+/** Party 200-piece set: 50 each of white (1), red (5), green (25), black (100). */
+export const PARTY_200: ChipSet = {
+  denominations: [
+    denom('w', 'white', 1, 50),
+    denom('r', 'red', 5, 50),
+    denom('g', 'green', 25, 50),
+    denom('b', 'black', 100, 50),
+  ],
+};
+
+/** Deluxe 500-piece set: 100 white (1), 100 red (5), 100 green (25), 50 blue (50), 50 black (100), 50 purple (500), 50 yellow (1000). */
+export const DELUXE_500: ChipSet = {
+  denominations: [
+    denom('w', 'white', 1, 100),
+    denom('r', 'red', 5, 100),
+    denom('g', 'green', 25, 100),
+    denom('u', 'blue', 50, 50),
+    denom('b', 'black', 100, 50),
+    denom('p', 'purple', 500, 50),
+    denom('y', 'yellow', 1000, 50),
+  ],
+};
+
+/** Tournament 1000-piece set: 300 white (1), 300 red (5), 200 blue (10), 100 green (25), 100 black (100). */
+export const TOURNAMENT_1000: ChipSet = {
+  denominations: [
+    denom('w', 'white', 1, 300),
+    denom('r', 'red', 5, 300),
+    denom('u', 'blue', 10, 200),
+    denom('g', 'green', 25, 100),
+    denom('b', 'black', 100, 100),
+  ],
+};
+
 export interface Preset {
   id: string;
   label: string;
@@ -74,6 +119,18 @@ export interface Preset {
 }
 
 export const PRESETS: Preset[] = [
+  {
+    id: 'starter-100',
+    label: 'Starter 100',
+    description: '20 each of white, red, green, black, yellow',
+    set: STARTER_100,
+  },
+  {
+    id: 'party-200',
+    label: 'Party 200',
+    description: '50 each of white, red, green, black',
+    set: PARTY_200,
+  },
   {
     id: 'standard-300',
     label: 'Standard 300',
@@ -86,9 +143,39 @@ export const PRESETS: Preset[] = [
     description: '150 white, 150 red, 100 green, 75 black, 25 purple',
     set: STANDARD_500,
   },
+  {
+    id: 'deluxe-500',
+    label: 'Deluxe 500',
+    description: '100 white, 100 red, 100 green, 50 blue, 50 black, 50 purple, 50 yellow',
+    set: DELUXE_500,
+  },
+  {
+    id: 'tournament-1000',
+    label: 'Tournament 1000',
+    description: '300 white, 300 red, 200 blue, 100 green, 100 black',
+    set: TOURNAMENT_1000,
+  },
 ];
 
 /** Deep-clone a chip set so callers can edit freely without mutating the presets. */
 export function cloneSet(set: ChipSet): ChipSet {
   return { denominations: set.denominations.map((d) => ({ ...d })) };
+}
+
+function sameShape(a: ChipSet, b: ChipSet): boolean {
+  const norm = (s: ChipSet) =>
+    s.denominations
+      .map((d) => `${d.color}:${d.value}:${d.count}`)
+      .sort()
+      .join('|');
+  return norm(a) === norm(b);
+}
+
+/**
+ * Which preset (if any) the given set is identical to, ignoring denomination ids and
+ * order. Used to keep the preset picker honest: it should say "Custom" the moment a set
+ * no longer matches what it claims to be, not just whatever was last selected.
+ */
+export function matchingPresetId(set: ChipSet): string {
+  return PRESETS.find((p) => sameShape(p.set, set))?.id ?? 'custom';
 }

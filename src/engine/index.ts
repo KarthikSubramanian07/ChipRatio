@@ -1,32 +1,44 @@
-import type { ChipSet, Config, PerPlayerChip, Result, UnevenSmall, Warning } from './types';
+import type { ChipSet, Config, Result, StackChip, Warning } from './types';
 import { clamp } from './math';
-import { allocate, type AllocationOptions, type UnevenSmall as InternalUneven } from './allocate';
-import { deriveBlinds, DEEP_BB, SHALLOW_BB } from './blinds';
+import { DEEP_BB, SHALLOW_BB } from './blinds';
 import { minSmallChips } from './quality';
-import { mapMoney } from './money';
-import { suggestBuyIn } from './suggest';
+import { planCash } from './cash';
+import { planTournament } from './tournament';
+import { colorName, formatAmount, formatCents } from './format';
+import type { Plan } from './plan';
 
 // The one function the UI calls. Everything below it is pure. Give it a chip set and a
-// config, get back a fully assembled Result: the stack, the leftovers, the blinds, the
-// money, and every warning worth surfacing.
+// config, get back a fully assembled Result: the stack, what each chip is worth, the
+// leftovers, the blinds, and every warning worth surfacing, in plain words.
 
-// Re-exports only what the UI actually consumes through this barrel. Everything else
-// (blinds helpers, presets types, summary options) is used directly from its own
-// submodule by tests and scripts, so re-exporting it here again would just be dead API
-// surface.
 export * from './types';
-export { PALETTE, PRESETS, STANDARD_300, cloneSet, colorHex, colorEdge } from './presets';
+export {
+  PALETTE,
+  PRESETS,
+  STANDARD_300,
+  cloneSet,
+  colorHex,
+  colorEdge,
+  matchingPresetId,
+} from './presets';
 export { buildSummary } from './summary';
-export { formatMoney, unevenSmallNote } from './format';
+export { chipFace, colorName, formatAmount, formatCents, formatNumber, plural } from './format';
+export { smallestChipOptions } from './cash';
 
-/** Sensible defaults for a fresh session. targetStackChips leans tournament (30-50/player). */
+export const MIN_PLAYERS = 2;
+export const MAX_PLAYERS = 12;
+/** Fewer chips than this per player is not really a stack. */
+const THIN_STACK_CHIPS = 12;
+
+/** Sensible defaults for a fresh session: six friends, a $20 cash game. */
 export const DEFAULT_CONFIG: Config = {
   players: 6,
-  mode: 'suggest',
-  buyIn: null,
-  moneyBuyIn: null,
+  game: 'cash',
+  buyInCents: 2000,
+  smallestChipCents: null,
+  startingStack: null,
   targetStackChips: 30,
-  allowUnevenSmallChips: false,
+  currency: '$',
 };
 
 interface CleanDenom {
@@ -41,7 +53,7 @@ function normalizeSet(set: ChipSet): CleanDenom[] {
     .filter(
       (d) =>
         Number.isFinite(d.value) &&
-        d.value > 0 &&
+        d.value >= 1 &&
         Number.isFinite(d.count) &&
         d.count >= 0 &&
         Math.floor(d.count) === d.count,
@@ -50,185 +62,181 @@ function normalizeSet(set: ChipSet): CleanDenom[] {
     .sort((a, b) => a.value - b.value || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
-function emptyResult(requestedBuyIn: number | null, warnings: Warning[]): Result {
+function emptyResult(config: Config, requested: number | null, warnings: Warning[]): Result {
   return {
     ok: false,
+    game: config.game,
     perPlayer: [],
     stackValue: 0,
-    requestedBuyIn,
+    requested,
+    autoPicked: false,
     totalChipsPerPlayer: 0,
     leftover: [],
-    unevenSmall: null,
+    rebuys: 0,
     blinds: null,
-    money: null,
-    suggestion: null,
     warnings,
     quality: 0,
   };
 }
 
-function publicUneven(u: InternalUneven | null, denoms: CleanDenom[]): UnevenSmall | null {
-  if (!u) return null;
-  return { denomId: denoms[u.index].id, extraPlayers: u.extraPlayers, baseCount: u.baseCount };
-}
-
 export function calculate(chipSet: ChipSet, config: Config): Result {
   const warnings: Warning[] = [];
+  const game = config.game === 'tournament' ? 'tournament' : 'cash';
+  const symbol = config.currency || '$';
+  const amount = (n: number): string => formatAmount(n, game, symbol);
   const denoms = normalizeSet(chipSet);
 
-  if (denoms.length === 0) {
-    return emptyResult(config.buyIn, [
-      { code: 'input', message: 'Add at least one chip denomination to get started.' },
+  const requested =
+    game === 'cash'
+      ? config.buyInCents !== null && config.buyInCents >= 1
+        ? Math.round(config.buyInCents)
+        : null
+      : config.startingStack !== null && config.startingStack >= 1
+        ? Math.floor(config.startingStack)
+        : null;
+
+  if (denoms.length === 0 || denoms.every((d) => d.count === 0)) {
+    return emptyResult(config, requested, [
+      { code: 'input', message: 'Add the chips in your case to get started.' },
     ]);
   }
 
-  const players = clamp(Math.round(config.players), 2, 10);
+  const players = clamp(Math.round(config.players) || MIN_PLAYERS, MIN_PLAYERS, MAX_PLAYERS);
   if (players !== config.players) {
     warnings.push({
       code: 'input',
-      message: `Player count set to ${players}. ChipRatio handles 2 to 10 players.`,
+      message: `Using ${players} players. ChipRatio handles ${MIN_PLAYERS} to ${MAX_PLAYERS}.`,
     });
+  }
+
+  if (game === 'cash' && requested === null) {
+    return emptyResult(config, null, [
+      { code: 'input', message: 'Enter how much each player buys in for.' },
+    ]);
   }
 
   const values = denoms.map((d) => d.value);
   const counts = denoms.map((d) => d.count);
-  const smallest = values[0];
+  const targetStackChips = config.targetStackChips > 0 ? config.targetStackChips : 30;
 
-  const opts: AllocationOptions = {
-    targetStackChips:
-      config.targetStackChips > 0 ? config.targetStackChips : DEFAULT_CONFIG.targetStackChips,
-    allowUnevenSmallChips: config.allowUnevenSmallChips,
-  };
-
-  // Decide the target buy-in. Suggest mode (or a missing/invalid buy-in in solve mode)
-  // hands off to the recommender. A buy-in that floors below 1 chip (0, a fraction, or
-  // negative) is treated the same as "none entered" rather than silently dealing an
-  // empty stack.
-  let target: number;
-  let suggestion: { buyIn: number; rationale: string } | null = null;
-  const wantSuggest = config.mode === 'suggest' || config.buyIn === null || !(config.buyIn >= 1);
-
-  if (wantSuggest) {
-    const s = suggestBuyIn(values, counts, players, opts);
-    if (!s) {
-      return emptyResult(config.buyIn, [
-        ...warnings,
-        {
-          code: 'not-enough-chips',
-          message: `This box cannot give ${players} players a full stack. Add more chips or seat fewer players.`,
-        },
-      ]);
-    }
-    target = s.buyIn;
-    suggestion = { buyIn: s.buyIn, rationale: s.rationale };
-    // The recommender already built a reachability table while choosing this buy-in;
-    // hand it to the final allocate() call below instead of rebuilding it from scratch.
-    if (s.reachable) opts.reachable = s.reachable;
-    if (config.mode === 'solve') {
+  let plan: Plan | null;
+  if (game === 'cash') {
+    const cash = planCash(
+      values,
+      counts,
+      players,
+      requested as number,
+      config.smallestChipCents,
+      targetStackChips,
+    );
+    if (cash?.pinIgnored) {
       warnings.push({
-        code: 'input',
-        message: 'No buy-in entered, so ChipRatio suggested one for you.',
+        code: 'chip-value-ignored',
+        message: `A ${colorLabelFor(denoms[0].color)} chip can't be worth ${formatCents(config.smallestChipCents as number, symbol)} with these chip values (the others would land on fractions of a cent), so ChipRatio picked the chip values itself.`,
       });
     }
+    plan = cash;
   } else {
-    target = Math.floor(config.buyIn as number);
+    plan = planTournament(values, counts, players, requested, targetStackChips);
   }
 
-  const alloc = allocate(values, counts, players, target, opts);
-
-  if (!alloc.feasible) {
-    return emptyResult(wantSuggest ? null : config.buyIn, [
+  if (!plan) {
+    return emptyResult(config, requested, [
       ...warnings,
       {
         code: 'not-enough-chips',
-        message: `This box cannot give ${players} players a full stack. Add more chips or seat fewer players.`,
+        message: `There aren't enough chips to give ${players} players a stack. Add chips or seat fewer players.`,
       },
     ]);
   }
 
-  const blinds = deriveBlinds(alloc.value, smallest);
-
-  // --- Warnings ---------------------------------------------------------------
-  if (target > alloc.capValue) {
+  // --- Warnings, in the words a host would use ---------------------------------
+  if (requested !== null && plan.adjusted) {
+    const tooRich = requested > plan.capValue;
+    const noun = game === 'cash' ? `${amount(requested)} buy-in` : `${amount(requested)} stack`;
     warnings.push({
-      code: 'infeasible',
-      message: `A buy-in of ${target} is richer than the biggest equal stack this box allows (${alloc.capValue}). Snapped down to ${alloc.value}. Add chips or seat fewer players to go higher.`,
+      code: 'amount-adjusted',
+      message: tooRich
+        ? `Not enough chips for a ${noun} with ${players} players, so this uses ${amount(plan.stackValue)}. Add chips or seat fewer players to go higher.`
+        : `These chips can't split a ${noun} evenly, so this uses ${amount(plan.stackValue)}, the closest even split.`,
     });
-  } else if (alloc.unevenSmall) {
-    const extra = alloc.unevenSmall.extraPlayers;
-    const n = Math.abs(extra);
-    const direction = extra > 0 ? 'an extra' : 'one fewer';
-    warnings.push({
-      code: 'uneven-small-chips',
-      message: `To land the table on ${target}, ${n} player${n === 1 ? '' : 's'} get ${direction} of the smallest chip. Every other chip is identical.`,
-    });
-    if (alloc.tableValue !== players * target) {
-      warnings.push({
-        code: 'buyin-snapped',
-        message: `Even with uneven small chips, ${target} is not perfectly reachable. Closest is ${alloc.value} per player.`,
-      });
-    }
-  } else if (alloc.snapped) {
-    warnings.push({
-      code: 'buyin-snapped',
-      message: `A buy-in of ${target} is not reachable with identical stacks. Snapped to the nearest, ${alloc.value}.`,
-    });
-    if (alloc.gcd > 1 && target % alloc.gcd !== 0) {
-      warnings.push({
-        code: 'granularity-limited',
-        message: `Your smallest reachable step is ${alloc.gcd} (no chip splits it finer), so some buy-ins have to round.`,
-      });
-    }
   }
 
+  const blinds = plan.blinds;
+  const depth = Math.round(blinds.startingBBDepth);
   if (blinds.startingBBDepth > 0 && blinds.startingBBDepth < SHALLOW_BB) {
     warnings.push({
-      code: 'shallow-stack',
-      message: `Starting depth is about ${Math.round(blinds.startingBBDepth)} big blinds, which plays short. 50 or more is roomier.`,
+      code: 'short-stack',
+      message:
+        game === 'cash'
+          ? `Stacks start only ${depth} big blinds deep, so expect a lot of all-ins. A bigger buy-in or cheaper chips play better.`
+          : `Stacks start only ${depth} big blinds deep, so expect a lot of all-ins early.`,
     });
   } else if (blinds.startingBBDepth > DEEP_BB) {
     warnings.push({
       code: 'deep-stack',
-      message: `Starting depth is about ${Math.round(blinds.startingBBDepth)} big blinds, which plays deep and slow. Fine if that is the plan.`,
+      message: `Stacks start ${depth} big blinds deep. That's a long, slow game. Fine if that's the plan.`,
     });
   }
 
-  const wantSmall = minSmallChips(blinds.big, smallest);
-  if (alloc.x[0] < wantSmall) {
+  const totalChips = plan.x.reduce((a, b) => a + b, 0);
+  const wantSmall = minSmallChips(blinds.big, plan.worth[0]);
+  if (totalChips < THIN_STACK_CHIPS) {
+    warnings.push({
+      code: 'thin-stack',
+      message: `Only ${totalChips} chips each. This case is small for ${players} players, so stacks will be thin. Seat fewer players or add chips.`,
+    });
+  } else if (plan.x[0] < wantSmall) {
     warnings.push({
       code: 'few-small-chips',
-      message: `Only ${alloc.x[0]} of the smallest chip per stack. Posting and changing the early blinds gets fiddly below ${wantSmall}.`,
+      message: `Only ${plan.x[0]} ${colorLabelFor(denoms[0].color)} chips each. Paying blinds and making change will be fiddly.`,
     });
   }
 
-  // --- Assemble ---------------------------------------------------------------
-  const perPlayer: PerPlayerChip[] = denoms
-    .map((d, i) => ({ denomId: d.id, color: d.color, value: d.value, count: alloc.x[i] }))
+  // --- Assemble -------------------------------------------------------------------
+  const cents = (i: number): number | null => (game === 'cash' ? plan.worth[i] : null);
+  const perPlayer: StackChip[] = denoms
+    .map((d, i) => ({
+      denomId: d.id,
+      color: d.color,
+      value: d.value,
+      count: plan.x[i],
+      cents: cents(i),
+    }))
     .filter((p) => p.count > 0);
 
-  const leftover: PerPlayerChip[] = denoms
-    .map((d, i) => {
-      let used = players * alloc.x[i];
-      if (alloc.unevenSmall && i === alloc.unevenSmall.index)
-        used += alloc.unevenSmall.extraPlayers;
-      return { denomId: d.id, color: d.color, value: d.value, count: d.count - used };
-    })
+  const leftCounts = denoms.map((d, i) => d.count - players * plan.x[i]);
+  const leftover: StackChip[] = denoms
+    .map((d, i) => ({
+      denomId: d.id,
+      color: d.color,
+      value: d.value,
+      count: leftCounts[i],
+      cents: cents(i),
+    }))
     .filter((p) => p.count > 0);
 
-  const money = mapMoney(alloc.value, config.moneyBuyIn, denoms);
+  let rebuys = Infinity;
+  plan.x.forEach((c, i) => {
+    if (c > 0) rebuys = Math.min(rebuys, Math.floor(leftCounts[i] / c));
+  });
 
   return {
     ok: true,
+    game,
     perPlayer,
-    stackValue: alloc.value,
-    requestedBuyIn: wantSuggest ? null : Math.floor(config.buyIn as number),
-    totalChipsPerPlayer: alloc.x.reduce((a, b) => a + b, 0),
+    stackValue: plan.stackValue,
+    requested,
+    autoPicked: requested === null,
+    totalChipsPerPlayer: totalChips,
     leftover,
-    unevenSmall: publicUneven(alloc.unevenSmall, denoms),
+    rebuys: Number.isFinite(rebuys) ? rebuys : 0,
     blinds,
-    money,
-    suggestion,
     warnings,
-    quality: alloc.quality,
+    quality: plan.quality,
   };
+}
+
+function colorLabelFor(color: string): string {
+  return colorName(color).toLowerCase();
 }

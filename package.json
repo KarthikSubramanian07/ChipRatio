@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Poker chip calculator for perfect home game splits. Enter your set, get exact equal stacks. Free forever, no ads, no signup.",
+  "description": "Poker chip calculator for home games: even stacks, real-money chip values, and blinds for cash games and tournaments. Free forever, no ads, no signup.",
   "license": "MIT",
   "homepage": "https://chipratio.pages.dev",
   "repository": {

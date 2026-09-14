@@ -1,25 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { chooseBlinds, deriveBlinds } from './blinds';
+import { blindLadder, chooseBlinds, deriveBlinds } from './blinds';
+import { isNiceCents } from './nice';
 
 describe('chooseBlinds', () => {
   it('targets roughly 100 big blinds deep', () => {
-    // 2000 chips -> 10/20 lands exactly 100 BB.
     expect(chooseBlinds(2000, 1)).toEqual({ small: 10, big: 20 });
-    // 1000 chips -> 5/10 lands exactly 100 BB.
     expect(chooseBlinds(1000, 1)).toEqual({ small: 5, big: 10 });
+    expect(chooseBlinds(10000, 25)).toEqual({ small: 50, big: 100 });
   });
 
-  it('keeps big buy-ins from producing silly depths', () => {
-    const { small, big } = chooseBlinds(2000, 1);
-    const depth = 2000 / big;
-    expect(depth).toBeLessThanOrEqual(150);
-    expect(depth).toBeGreaterThanOrEqual(50);
-    expect(big).toBe(2 * small);
+  it('only picks blinds postable with the smallest chip', () => {
+    expect(chooseBlinds(1000, 5).small % 5).toBe(0);
+    expect(chooseBlinds(3000, 25).small % 25).toBe(0);
   });
 
-  it('scales the blind to the smallest chip so blinds stay postable', () => {
-    const { small } = chooseBlinds(1000, 5);
-    expect(small % 5).toBe(0);
+  it('prices cash blinds in real money', () => {
+    expect(chooseBlinds(2000, 10, true)).toEqual({ small: 10, big: 20 }); // $20 -> 10¢/20¢
+    expect(chooseBlinds(10000, 25, true)).toEqual({ small: 50, big: 100 }); // $100 -> 50¢/$1
+    const { small, big } = chooseBlinds(5000, 5, true);
+    expect(isNiceCents(small) && isNiceCents(big)).toBe(true);
   });
 
   it('never divides by zero', () => {
@@ -28,31 +27,48 @@ describe('chooseBlinds', () => {
   });
 });
 
+describe('blindLadder', () => {
+  it('falls back to multiples of an odd smallest chip', () => {
+    const ladder = blindLadder(7, false);
+    expect(ladder.length).toBeGreaterThan(0);
+    for (const sb of ladder) expect(sb % 7).toBe(0);
+  });
+});
+
 describe('deriveBlinds', () => {
-  it('computes big blind depth near the target', () => {
-    const b = deriveBlinds(1000, 5);
-    expect(b.big).toBe(2 * b.small);
-    expect(b.startingBBDepth).toBeGreaterThan(40);
-    expect(b.startingBBDepth).toBeLessThan(150);
+  it('builds a tournament schedule from real, rising levels', () => {
+    const b = deriveBlinds(1000, 1, { cash: false });
+    expect(b.schedule.map((l) => `${l.small}/${l.big}`)).toEqual([
+      '5/10',
+      '10/20',
+      '15/30',
+      '25/50',
+      '40/80',
+      '75/150',
+      '150/300',
+      '250/500',
+    ]);
   });
 
-  it('produces a strictly increasing, postable schedule', () => {
-    const b = deriveBlinds(1000, 5);
-    expect(b.schedule.length).toBeGreaterThan(0);
+  it('keeps every level a multiple of the smallest chip', () => {
+    const b = deriveBlinds(5000, 25, { cash: false });
     for (let i = 1; i < b.schedule.length; i++) {
       expect(b.schedule[i].big).toBeGreaterThan(b.schedule[i - 1].big);
     }
+    for (const level of b.schedule) expect(level.small % 25).toBe(0);
+  });
+
+  it('never produces the old off-ladder levels like 2/3 or 14/27', () => {
+    const b = deriveBlinds(200, 1, { cash: false });
     for (const level of b.schedule) {
-      expect(level.small % 5).toBe(0);
-      expect(level.big % 5).toBe(0);
-      expect(level.small).toBeGreaterThan(0);
+      expect(level.big).toBe(2 * level.small);
+      expect([1, 2, 5].includes(level.small) || level.small % 5 === 0).toBe(true);
     }
   });
 
-  it('escalates roughly 1.5x per level', () => {
-    const b = deriveBlinds(2000, 1);
-    const ratio = b.schedule[1].big / b.schedule[0].big;
-    expect(ratio).toBeGreaterThanOrEqual(1.4);
-    expect(ratio).toBeLessThanOrEqual(2.1);
+  it('holds cash blinds still', () => {
+    const b = deriveBlinds(2000, 10, { cash: true });
+    expect(b.schedule).toEqual([]);
+    expect(b.startingBBDepth).toBe(100);
   });
 });
