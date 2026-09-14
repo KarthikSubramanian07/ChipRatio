@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { pyramidFraction, minSmallChips, scoreStack, type QualityContext } from './quality';
+import {
+  countAwkwardness,
+  pyramidFraction,
+  minSmallChips,
+  scoreStack,
+  type QualityContext,
+} from './quality';
 
 describe('pyramidFraction', () => {
   it('rewards non-increasing counts as value rises', () => {
@@ -35,5 +41,17 @@ describe('scoreStack', () => {
   it('is deterministic', () => {
     const x = [12, 4, 2, 1];
     expect(scoreStack(x, ctx)).toBe(scoreStack(x, ctx));
+  });
+});
+
+describe('countAwkwardness', () => {
+  it('treats handfuls and multiples of five as easy to deal', () => {
+    for (const c of [0, 1, 3, 5, 10, 15, 20, 25]) expect(countAwkwardness(c)).toBe(0);
+  });
+
+  it('marks odd counts as the hardest', () => {
+    expect(countAwkwardness(7)).toBe(1);
+    expect(countAwkwardness(12)).toBe(0.5);
+    expect(countAwkwardness(13)).toBeGreaterThan(countAwkwardness(12));
   });
 });
