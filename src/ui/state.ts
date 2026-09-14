@@ -1,5 +1,12 @@
-import type { ChipSet, Config, Mode } from '../engine';
-import { DEFAULT_CONFIG, STANDARD_300, PALETTE, cloneSet } from '../engine';
+import type { ChipSet, Config } from '../engine';
+import {
+  DEFAULT_CONFIG,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+  STANDARD_300,
+  PALETTE,
+  cloneSet,
+} from '../engine';
 import { isTheme, initialTheme } from './themes';
 
 // The whole app state, persisted to localStorage so a host's set is there next game night.
@@ -9,23 +16,26 @@ export interface AppState {
   set: ChipSet;
   config: Config;
   theme: string;
-  moneySymbol: string;
 }
 
 const STORAGE_KEY = 'chipratio.v1';
+
+/** Currency symbols offered in the picker. Cash math is whole cents for all of them. */
+export const CURRENCIES = ['$', '€', '£', '₹'];
 
 function freshState(): AppState {
   return {
     set: cloneSet(STANDARD_300),
     config: { ...DEFAULT_CONFIG },
     theme: initialTheme(),
-    moneySymbol: '$',
   };
 }
 
 // Defensive hydration: anything the stored blob gets wrong falls back to a sane default,
-// so a stale or hand-edited localStorage can never crash the app.
-function hydrate(raw: unknown): AppState {
+// so a stale or hand-edited localStorage can never crash the app. Also reads the shape the
+// first release saved (mode, buyIn, moneyBuyIn, moneySymbol) so returning hosts keep their
+// set and their cash buy-in.
+export function hydrate(raw: unknown): AppState {
   const base = freshState();
   if (typeof raw !== 'object' || raw === null) return base;
   const data = raw as Record<string, unknown>;
@@ -35,27 +45,27 @@ function hydrate(raw: unknown): AppState {
 
   if (typeof data.config === 'object' && data.config !== null) {
     const c = data.config as Record<string, unknown>;
+    const legacyCash = positiveNumberOrNull(c.moneyBuyIn);
     base.config = {
-      players: numberInRange(c.players, DEFAULT_CONFIG.players, 2, 10),
-      mode: (c.mode === 'solve' || c.mode === 'suggest' ? c.mode : DEFAULT_CONFIG.mode) as Mode,
-      // Mirrors the live inputs: a buy-in is either explicitly absent or a positive
-      // number. A stale or hand-edited 0/negative buy-in is treated as absent, not
-      // loaded verbatim (calculate() would otherwise deal an empty stack silently).
-      buyIn: c.buyIn === null ? null : positiveNumberOrNull(c.buyIn),
-      moneyBuyIn: c.moneyBuyIn === null ? null : positiveNumberOrNull(c.moneyBuyIn),
+      players: numberInRange(c.players, DEFAULT_CONFIG.players, MIN_PLAYERS, MAX_PLAYERS),
+      game: c.game === 'tournament' ? 'tournament' : 'cash',
+      buyInCents:
+        c.buyInCents === null
+          ? null
+          : (wholeOrNull(c.buyInCents) ??
+            (legacyCash !== null ? Math.round(legacyCash * 100) : DEFAULT_CONFIG.buyInCents)),
+      smallestChipCents: wholeOrNull(c.smallestChipCents),
+      startingStack: wholeOrNull(c.startingStack),
       targetStackChips: numberInRange(c.targetStackChips, DEFAULT_CONFIG.targetStackChips, 8, 80),
-      allowUnevenSmallChips: c.allowUnevenSmallChips === true,
+      currency: CURRENCIES.includes(c.currency as string)
+        ? (c.currency as string)
+        : CURRENCIES.includes(data.moneySymbol as string)
+          ? (data.moneySymbol as string)
+          : DEFAULT_CONFIG.currency,
     };
   }
 
   if (typeof data.theme === 'string' && isTheme(data.theme)) base.theme = data.theme;
-  if (
-    typeof data.moneySymbol === 'string' &&
-    data.moneySymbol.length >= 1 &&
-    data.moneySymbol.length <= 3
-  ) {
-    base.moneySymbol = data.moneySymbol;
-  }
   return base;
 }
 
@@ -67,12 +77,10 @@ function validateSet(raw: unknown): ChipSet | null {
     .filter((d): d is Record<string, unknown> => typeof d === 'object' && d !== null)
     .map((d) => ({
       id: typeof d.id === 'string' ? d.id : cryptoId(),
-      // Restricted to the known palette: colorHex/colorEdge already fall back safely
-      // for an unrecognized key, but a stored color should never be anything other
-      // than a real palette choice in the first place.
+      // Restricted to the known palette, since the color lands in an inline style.
       color: PALETTE.some((c) => c.key === d.color) ? (d.color as string) : 'white',
-      value: numberOr(d.value, 1),
-      count: numberOr(d.count, 0),
+      value: Math.floor(numberOr(d.value, 1)),
+      count: Math.floor(numberOr(d.count, 0)),
     }))
     .filter((d) => d.value > 0 && d.count >= 0);
   return cleaned.length > 0 ? { denominations: cleaned } : null;
@@ -88,9 +96,14 @@ function numberInRange(value: unknown, fallback: number, min: number, max: numbe
   return Math.min(max, Math.max(min, Math.round(value)));
 }
 
-/** A stored number is only valid here if it is a positive, finite number; else null. */
 function positiveNumberOrNull(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+/** A stored whole number is only valid here if it is a positive integer; else null. */
+function wholeOrNull(value: unknown): number | null {
+  const n = positiveNumberOrNull(value);
+  return n !== null && Number.isInteger(n) ? n : null;
 }
 
 export function cryptoId(): string {
@@ -122,7 +135,7 @@ export class Store {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
     } catch {
-      // Private-mode or storage-full: the app still works, it just will not remember.
+      // Private mode or storage full: the app still works, it just will not remember.
     }
   }
 
@@ -130,7 +143,7 @@ export class Store {
     return this.state;
   }
 
-  /** Merge a shallow patch, persist, and notify. Structural changes replace whole slices. */
+  /** Merge a shallow patch, persist, and notify. */
   update(patch: Partial<AppState>): void {
     this.state = { ...this.state, ...patch };
     this.persist();
