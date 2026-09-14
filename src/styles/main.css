@@ -242,20 +242,52 @@ p {
 }
 
 /* --- Hero + explainers ----------------------------------------------------------- */
+/* The hero spans the page in the same two columns as the calculator below it: the headline
+   over the setup panel, the description and highlights over the answer. Stacked on phones. */
 .hero {
-  padding: 32px 0 20px;
-  max-width: 40rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 12px var(--gap);
+  align-items: center;
+  padding: 36px 0 24px;
 }
 .hero h1 {
   font-family: var(--display);
-  font-size: clamp(2rem, 5vw, 3rem);
+  font-size: clamp(2.2rem, 4.6vw, 3.4rem);
   font-weight: 700;
-  margin-bottom: 0.25em;
+  margin: 0;
 }
 .hero-sub {
   color: var(--muted);
-  font-size: 1.05rem;
+  font-size: 1.08rem;
   margin: 0;
+}
+.hero-points {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+}
+.hero-points li {
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+.hero-points li::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: 1px;
 }
 /* The explainer section runs the full width of the page: three cards side by side on a
    laptop, two on a tablet, one on a phone. Each card keeps a comfortable line length. */
@@ -374,8 +406,9 @@ p {
 }
 /* iPad portrait and small laptops: two narrower columns with a little less padding. */
 @media (min-width: 720px) and (max-width: 1099px) {
-  .calc {
-    gap: 12px;
+  .calc,
+  .hero {
+    column-gap: 12px;
   }
   .panel {
     padding: 18px;
@@ -424,6 +457,9 @@ p {
 }
 @media (max-width: 719px) {
   .hero {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 580px;
+    margin-inline: auto;
     padding: 22px 0 14px;
   }
   .hero-sub {
