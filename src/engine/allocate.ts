@@ -5,51 +5,44 @@ import { scoreStack, type QualityContext } from './quality';
 // The allocation solver. Everything here is pure and integer-only.
 //
 // Every player gets an identical stack, so per denomination the most any player can
-// receive is floor(count / players). Within those caps we search for the integer
-// stack that sums to exactly the buy-in and scores best as a pyramid (see quality.ts).
+// receive is floor(count / players). Within those caps we search for the integer stack that
+// sums to exactly the target and scores best (see quality.ts).
 //
 // The search is exact, not heuristic: we enumerate every stack that hits the target and
-// keep the best. The trick that keeps it fast is that the smallest denomination is a
-// free "remainder absorber" — once the counts of every larger chip are fixed, the count
-// of the smallest chip is forced. So we only branch over the larger denominations, and
-// real poker sets have very few of those with meaningful caps.
+// keep the best. The trick that keeps it fast is that the smallest denomination is a free
+// "remainder absorber": once the counts of every larger chip are fixed, the count of the
+// smallest chip is forced. So we only branch over the larger denominations, and real poker
+// sets have very few of those.
 
-/** Safety valve so a pathological (non-poker) set can never hang the search. */
-const NODE_BUDGET = 6_000_000;
+/**
+ * Work cap for one search pass. Real 3 to 5 color sets finish far below it; a 7-color case
+ * split between two players has millions of exact stacks, and past this point the search
+ * keeps the best one found so far (still deterministic, since the order is fixed). Counts
+ * are tried smallest first, so the stacks explored early are the pyramid-shaped ones that
+ * tend to win anyway.
+ */
+const NODE_BUDGET = 150_000;
 
 export interface AllocationOptions {
   targetStackChips: number;
-  allowUnevenSmallChips: boolean;
-  /** Optional precomputed reachability table (suggest mode reuses one across candidates). */
+  /** Optional precomputed reachability table for these values and caps. */
   reachable?: boolean[];
-}
-
-export interface UnevenSmall {
-  /** Always 0: only the smallest denomination is ever allowed to vary. */
-  index: number;
-  /** Signed. +k: k players get one extra smallest chip. -k: k players get one fewer. */
-  extraPlayers: number;
-  /** Count of the smallest chip in the base (identical) stack. */
-  baseCount: number;
+  /** Big blind in the same unit as values. Derived from the target when omitted. */
+  bigBlind?: number;
 }
 
 export interface Allocation {
-  /** False only when the box cannot even equip every player with one chip. */
+  /** False only when the box cannot give every player even one chip. */
   feasible: boolean;
-  /** Base per-player counts, aligned to the ascending values array. */
+  /** Per-player counts, aligned to the ascending values array. */
   x: number[];
-  /** Base stack value. Equals the possibly-snapped target. */
+  /** Stack value. Equals the target unless it had to be snapped. */
   value: number;
-  /** True when value differs from the requested target (granularity or too few chips). */
+  /** True when value differs from the requested target. */
   snapped: boolean;
   /** Richest possible equal stack: sum of caps times values. */
   capValue: number;
-  /** gcd of the denomination values (the finest reachable step). */
-  gcd: number;
   quality: number;
-  unevenSmall: UnevenSmall | null;
-  /** Total value actually dealt across the table, after any uneven-small adjustment. */
-  tableValue: number;
 }
 
 interface Candidate {
@@ -71,11 +64,10 @@ function betterThan(a: Candidate, b: Candidate): boolean {
 /**
  * Enumerate every stack that sums to exactly `target` within caps and keep the best one.
  *
- * A generous cap on the total chip count prunes the enormous, worthless tail of stacks
- * built from a hundred tiny chips: they always lose on the chip-count penalty anyway, so
- * exploring them is pure waste. If nothing fits under the cap (only when a set genuinely
- * forces a large stack) we fall back to an uncapped pass, so the answer stays exact.
- * Returns null only if no exact stack exists at all.
+ * A cap on the total chip count prunes the enormous, worthless tail of stacks built from a
+ * hundred tiny chips: they always lose on the chip-count penalty anyway. If nothing fits
+ * under the cap (only when a set genuinely forces a large stack) the cap widens, ending in
+ * an uncapped pass, so a stack is always found when one exists. Returns null only if no exact stack exists.
  */
 function searchExact(
   values: number[],
@@ -102,7 +94,9 @@ function searchExact(
     let nodes = 0;
 
     const consider = (total: number): void => {
-      const cand: Candidate = { x, score: scoreStack(x, ctx), total };
+      const score = scoreStack(x, ctx, best === null ? -Infinity : best.score);
+      if (score === -Infinity) return;
+      const cand: Candidate = { x, score, total };
       if (best === null || betterThan(cand, best)) {
         best = { x: x.slice(), score: cand.score, total };
       }
@@ -127,7 +121,7 @@ function searchExact(
       const maxBelow = maxUpTo[i - 1];
       const hi = Math.min(caps[i], Math.floor(remaining / vi));
       const lo = Math.max(0, Math.ceil((remaining - maxBelow) / vi));
-      for (let c = hi; c >= lo; c--) {
+      for (let c = lo; c <= hi; c++) {
         x[i] = c;
         dfs(i - 1, remaining - c * vi, chipsSoFar + c);
       }
@@ -138,11 +132,11 @@ function searchExact(
     return best;
   };
 
-  const chipCap = Math.max(60, ctx.targetStackChips * 2 + 40);
-  return run(chipCap) ?? run(Infinity);
+  // Widen the chip cap only when a tighter pass finds nothing at all.
+  return run(ctx.targetStackChips + 25) ?? run(ctx.targetStackChips * 2 + 40) ?? run(Infinity);
 }
 
-/** Per-denomination caps and the richest possible equal stack, shared by allocate and suggest. */
+/** Per-denomination caps and the richest possible equal stack. */
 export function capsAndCapValue(
   values: number[],
   counts: number[],
@@ -155,7 +149,12 @@ export function capsAndCapValue(
   return { caps, capValue };
 }
 
-/** Solve for an identical per-player stack, snapping the buy-in only when forced to. */
+/** Reachability table for these chips, or null when the stack value is absurdly large. */
+export function reachableFor(values: number[], caps: number[], capValue: number): boolean[] | null {
+  return capValue > 0 && capValue <= REACHABLE_LIMIT ? reachableSums(values, caps, capValue) : null;
+}
+
+/** Solve for an identical per-player stack, snapping the target only when forced to. */
 export function allocate(
   values: number[],
   counts: number[],
@@ -173,40 +172,31 @@ export function allocate(
     value: 0,
     snapped: false,
     capValue,
-    gcd,
     quality: 0,
-    unevenSmall: null,
-    tableValue: 0,
   };
 
   if (k === 0 || capValue <= 0) return result;
 
   const clamped = Math.max(0, Math.min(target, capValue));
 
-  // Snap the target to the nearest value the box can actually form.
   let snappedTarget: number;
-  if (capValue <= REACHABLE_LIMIT) {
-    const reachable = opts.reachable ?? reachableSums(values, caps, capValue);
+  const reachable = opts.reachable ?? reachableFor(values, caps, capValue);
+  if (reachable) {
     snappedTarget = nearestReachable(reachable, clamped, capValue);
   } else {
     // Enormous (non-poker) set: fall back to gcd granularity, verified by the search.
     snappedTarget = gcd > 0 ? clamped - (clamped % gcd) : clamped;
   }
 
-  if (snappedTarget <= 0) {
-    result.snapped = target > 0;
-    return result;
-  }
-
-  const solveAt = (t: number): Candidate | null => {
-    const { big } = chooseBlinds(t, values[0]);
-    const ctx: QualityContext = { values, targetStackChips: opts.targetStackChips, bigBlind: big };
+  const solveAt = (t: number) => {
+    const bigBlind = opts.bigBlind ?? chooseBlinds(t, values[0]).big;
+    const ctx: QualityContext = { values, targetStackChips: opts.targetStackChips, bigBlind };
     return searchExact(values, caps, t, ctx);
   };
 
-  let found = solveAt(snappedTarget);
+  let found = snappedTarget > 0 ? solveAt(snappedTarget) : null;
   // Defensive: if a gcd-approximated target is not representable under caps, step down.
-  while (!found && snappedTarget > 0) {
+  while (!found && snappedTarget > 0 && !reachable) {
     snappedTarget -= gcd > 0 ? gcd : 1;
     if (snappedTarget > 0) found = solveAt(snappedTarget);
   }
@@ -219,38 +209,5 @@ export function allocate(
   result.value = snappedTarget;
   result.snapped = snappedTarget !== target;
   result.quality = found.score;
-  result.tableValue = players * snappedTarget;
-
-  applyUnevenSmall(result, values, counts, players, target, opts);
   return result;
-}
-
-/**
- * Opt-in: when the exact buy-in was unreachable with an identical stack, let the smallest
- * chip differ by one between players so the table total lands on (or nearest to) the exact
- * requested bankroll. This is the only asymmetry ChipRatio ever introduces.
- */
-function applyUnevenSmall(
-  result: Allocation,
-  values: number[],
-  counts: number[],
-  players: number,
-  target: number,
-  opts: AllocationOptions,
-): void {
-  if (!opts.allowUnevenSmallChips) return;
-  if (!result.snapped || target <= 0 || target > result.capValue) return;
-
-  const v0 = values[0];
-  const x0 = result.x[0];
-  const deltaValue = target - result.value; // signed shortfall per player
-  const extra = Math.round((players * deltaValue) / v0);
-  if (extra === 0 || Math.abs(extra) > players) return;
-
-  const totalSmallUsed = players * x0 + extra;
-  if (totalSmallUsed < 0 || totalSmallUsed > counts[0]) return;
-  if (extra < 0 && x0 < 1) return; // some players would need a negative count
-
-  result.unevenSmall = { index: 0, extraPlayers: extra, baseCount: x0 };
-  result.tableValue = players * result.value + extra * v0;
 }
