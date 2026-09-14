@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mountApp, readCents, readWhole } from './app';
 import { Store, hydrate } from './state';
+import { STANDARD_300 } from '../engine/presets';
 
 // A headless smoke test of the whole UI wiring: mount the real app into a jsdom document
 // and confirm it renders results, reacts to input, and never throws. Not a pixel test, a
@@ -44,7 +45,7 @@ describe('app smoke', () => {
     expect(prices.length).toBeGreaterThan(0);
     for (const p of prices) expect(p).toMatch(/^(\d{1,2}¢|\$[\d,]+(\.\d0)?)$/);
     expect(root.querySelector('.preset-select')).not.toBeNull();
-    expect((root.querySelector('.preset-select') as HTMLSelectElement).value).toBe('standard-300');
+    expect((root.querySelector('.preset-select') as HTMLSelectElement).value).toBe('standard-500');
     expect(pressed(root, '.pill')).toEqual(['$20']);
   });
 
@@ -88,7 +89,7 @@ describe('app smoke', () => {
     const root = mount();
     (root.querySelector('.add-denom') as HTMLButtonElement).click();
     expect((root.querySelector('.preset-select') as HTMLSelectElement).value).toBe('custom');
-    expect(root.querySelectorAll('.denom-row').length).toBe(5);
+    expect(root.querySelectorAll('.denom-row').length).toBe(6);
     expect((root.querySelector('.edit-chips') as HTMLDetailsElement).open).toBe(true);
   });
 
@@ -99,7 +100,7 @@ describe('app smoke', () => {
     plus.click();
     plus.click();
     expect(root.querySelector('.results')!.textContent).not.toBe(before);
-    expect((root.querySelector('.counter-input') as HTMLInputElement).value).toBe('8');
+    expect((root.querySelector('.counter-input') as HTMLInputElement).value).toBe('7');
   });
 
   it('only offers clean prices when pinning the smallest chip', () => {
@@ -113,7 +114,7 @@ describe('app smoke', () => {
   it('keeps a phone answer bar in sync with the result', () => {
     const root = mount();
     const peek = root.querySelector('.peek') as HTMLButtonElement;
-    expect(peek.textContent).toContain('$20 in 29 chips');
+    expect(peek.textContent).toContain('$20 in 35 chips');
     type(root.querySelector('.amount-input') as HTMLInputElement, '');
     expect(peek.textContent).toContain('Needs a fix');
   });
@@ -153,9 +154,16 @@ describe('hydrate', () => {
     expect(state.set.denominations).toHaveLength(1);
   });
 
+  it('moves an untouched old 300-set default to the five-color set', () => {
+    const old = hydrate({ set: STANDARD_300, config: { players: 6 } });
+    expect(old.set.denominations.map((d) => d.color)).toContain('blue');
+    const chosen = hydrate({ set: STANDARD_300, config: { players: 6 }, version: 2 });
+    expect(chosen.set.denominations.map((d) => d.color)).not.toContain('blue');
+  });
+
   it('falls back to defaults for junk', () => {
     const state = hydrate({ config: { players: 'lots', game: 'poker', buyInCents: -5 } });
-    expect(state.config.players).toBe(6);
+    expect(state.config.players).toBe(5);
     expect(state.config.game).toBe('cash');
     expect(state.config.buyInCents).toBe(2000);
     expect(hydrate(null).config.game).toBe('cash');

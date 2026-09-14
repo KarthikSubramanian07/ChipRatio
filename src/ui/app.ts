@@ -15,7 +15,7 @@ import {
   MIN_PLAYERS,
   PALETTE,
   PRESETS,
-  STANDARD_300,
+  DEFAULT_SET,
   type Denom,
   type GameType,
   type Result,
@@ -293,12 +293,12 @@ function chipSetField(
             type: 'button',
             on: {
               click: () => {
-                store.update({ set: cloneSet(STANDARD_300) });
+                store.update({ set: cloneSet(DEFAULT_SET) });
                 rebuild();
               },
             },
           },
-          'Reset to 300 set',
+          'Reset to standard set',
         ),
       ),
     ),

@@ -3,9 +3,10 @@ import {
   DEFAULT_CONFIG,
   MAX_PLAYERS,
   MIN_PLAYERS,
-  STANDARD_300,
+  DEFAULT_SET,
   PALETTE,
   cloneSet,
+  matchingPresetId,
 } from '../engine';
 import { isTheme, initialTheme } from './themes';
 
@@ -16,7 +17,11 @@ export interface AppState {
   set: ChipSet;
   config: Config;
   theme: string;
+  /** Saved-state format. 2 introduced the five-color default set. */
+  version?: number;
 }
+
+const STATE_VERSION = 2;
 
 const STORAGE_KEY = 'chipratio.v1';
 
@@ -25,9 +30,10 @@ export const CURRENCIES = ['$', '€', '£', '₹'];
 
 function freshState(): AppState {
   return {
-    set: cloneSet(STANDARD_300),
+    set: cloneSet(DEFAULT_SET),
     config: { ...DEFAULT_CONFIG },
     theme: initialTheme(),
+    version: STATE_VERSION,
   };
 }
 
@@ -41,7 +47,13 @@ export function hydrate(raw: unknown): AppState {
   const data = raw as Record<string, unknown>;
 
   const set = validateSet(data.set);
-  if (set) base.set = set;
+  // Before version 2 the default was the four-color 300 set. A visitor who never touched it
+  // gets the new five-color default; anyone who picked or edited a set keeps theirs.
+  const untouchedOldDefault =
+    set !== null &&
+    (typeof data.version !== 'number' || data.version < STATE_VERSION) &&
+    matchingPresetId(set) === 'standard-300';
+  if (set && !untouchedOldDefault) base.set = set;
 
   if (typeof data.config === 'object' && data.config !== null) {
     const c = data.config as Record<string, unknown>;
