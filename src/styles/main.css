@@ -243,7 +243,7 @@ p {
 
 /* --- Hero + explainers ----------------------------------------------------------- */
 /* The hero spans the page in the same two columns as the calculator below it: the headline
-   over the setup panel, the description and highlights over the answer. Stacked on phones. */
+   over the setup panel, the description over the answer. Stacked on phones. */
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
@@ -261,33 +261,6 @@ p {
   color: var(--muted);
   font-size: 1.08rem;
   margin: 0;
-}
-.hero-points {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 14px 0 0;
-  padding: 0;
-}
-.hero-points li {
-  font-size: 0.82rem;
-  font-weight: 650;
-  color: var(--text);
-  background: color-mix(in srgb, var(--surface) 70%, transparent);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 5px 12px;
-}
-.hero-points li::before {
-  content: '';
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-right: 7px;
-  border-radius: 50%;
-  background: var(--accent);
-  vertical-align: 1px;
 }
 /* The explainer section runs the full width of the page: three cards side by side on a
    laptop, two on a tablet, one on a phone. Each card keeps a comfortable line length. */
