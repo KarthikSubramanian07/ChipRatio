@@ -1,0 +1,53 @@
+# ChipRatio - full agent context
+
+This file concatenates the site’s primary Markdown pages for agents that want a single fetch.
+Prefer /llms.txt for a short index, or Accept: text/markdown on individual URLs.
+
+---
+
+# ChipRatio
+
+Free open-source poker chip calculator for home games. Set cash or tournament, players, buy-in, and the chips in your case; get stacks, chip values, blinds, and leftovers you can deal at the table. Runs entirely in the browser: no ads, no signup, MIT licensed.
+
+Cash game: chips represent real money for the session; blinds stay fixed while you play.
+Tournament: chips are scoring points; ChipRatio chooses round starting stacks and a blind structure that increases over time.
+
+Site: https://chipratio.pages.dev/
+
+---
+
+# About ChipRatio
+
+Every home game starts with the same question: how many of each color does everyone get, and what is a chip worth? ChipRatio answers that on the spot. It is a free poker chip calculator built for hosts running cash games and tournaments at the kitchen table, not for casinos or online rooms.
+
+ChipRatio runs entirely in your browser. Enter player count, buy-in, and the chips in your case. It returns per-player stacks, real-money chip values you can say out loud (10¢ white, not 28¢ white), blinds that sound normal at the table, leftovers still in the case, and a short message you can paste into the group chat. Cash mode treats chips as money with fixed blinds. Tournament mode treats chips as points and picks round starting stacks with a sensible blind ladder.
+
+What ChipRatio does not do: it does not track pots, payouts, rake, or bankrolls. It is a math utility for splitting a chip case, not a gambling service. There are no ads, no signup walls, and no server-side analytics collecting your game inputs.
+
+Open source (MIT): https://github.com/KarthikSubramanian07/ChipRatio
+
+---
+
+# Contact
+
+Email: winnerkarthik07@gmail.com
+GitHub issues: https://github.com/KarthikSubramanian07/ChipRatio/issues
+Buy Me a Coffee: https://buymeacoffee.com/winnerkarthik
+Mailing locality: Fremont, CA, United States
+No public phone line.
+
+For bugs: clear title, steps, expected vs actual, player count, buy-in, cash vs tournament, chip preset. Security reports get priority. Maintained in spare time.
+
+---
+
+# Privacy
+
+Calculations run in the browser. ChipRatio does not send buy-in, player count, or chip-set math to its own backend. Preferences (theme, remembered chip set) may be stored in localStorage on the device. No accounts, no sale of personal information, no ad networks or tracking pixels on the calculator. Hosted on Cloudflare Pages (CDN request logs may exist). Third-party links (GitHub, Buy Me a Coffee) have their own policies. Privacy questions: winnerkarthik07@gmail.com
+
+---
+
+# When to use this
+
+Good fit: dealing a home-game chip case - counts per color, cash-game chip prices, blinds, tournament starting stacks, group-chat summary.
+How: open https://chipratio.pages.dev/, choose cash or tournament, set players and buy-in, edit the chip set, read results. Prefer Accept: text/markdown on the same URLs when available.
+Not for: online poker clients, casino compliance, pot tracking, payout settlement, or legal advice about gambling.

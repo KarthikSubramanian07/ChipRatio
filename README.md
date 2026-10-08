@@ -98,10 +98,17 @@ Node 20 or newer.
 ```
 src/engine/    pure math, no DOM: types, nice numbers, allocate, quality, blinds, cash, tournament, format, summary
 src/ui/        the calculator: state (localStorage), app (setup + results), chips, themes
+src/agent/     Accept negotiation helpers shared with Cloudflare Pages Functions
 src/styles/    one stylesheet, five themes, phone and tablet layouts
+functions/     Pages middleware: Markdown negotiation and real HTTP 404s
+about|contact|privacy/  trust pages (HTML) with Markdown twins in public/
 scripts/       feel-test harness for eyeballing real splits
-public/        favicon, OG image, robots, sitemap, Cloudflare headers
+public/        favicon, OG image, robots, sitemap, llms.txt, Markdown twins, headers
 ```
+
+## Machine-readable surface
+
+Agents can fetch [`/llms.txt`](https://chipratio.pages.dev/llms.txt) for when-to-use guidance, request any HTML page with `Accept: text/markdown`, and rely on real `404` responses for unknown paths (with a Markdown error body when Markdown is asked for).
 
 ## Contributing
 

@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://chipratio.pages.dev/sitemap.xml
+LLMs-Txt: https://chipratio.pages.dev/llms.txt
