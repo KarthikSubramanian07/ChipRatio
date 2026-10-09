@@ -30,7 +30,6 @@ Open source (MIT): https://github.com/KarthikSubramanian07/ChipRatio
 
 # Contact
 
-Email: winnerkarthik07@gmail.com
 GitHub issues: https://github.com/KarthikSubramanian07/ChipRatio/issues
 Buy Me a Coffee: https://buymeacoffee.com/winnerkarthik
 Mailing locality: Fremont, CA, United States
@@ -42,7 +41,7 @@ For bugs: clear title, steps, expected vs actual, player count, buy-in, cash vs 
 
 # Privacy
 
-Calculations run in the browser. ChipRatio does not send buy-in, player count, or chip-set math to its own backend. Preferences (theme, remembered chip set) may be stored in localStorage on the device. No accounts, no sale of personal information, no ad networks or tracking pixels on the calculator. Hosted on Cloudflare Pages (CDN request logs may exist). Third-party links (GitHub, Buy Me a Coffee) have their own policies. Privacy questions: winnerkarthik07@gmail.com
+Calculations run in the browser. ChipRatio does not send buy-in, player count, or chip-set math to its own backend. Preferences (theme, remembered chip set) may be stored in localStorage on the device. No accounts, no sale of personal information, no ad networks or tracking pixels on the calculator. Hosted on Cloudflare Pages (CDN request logs may exist). Third-party links (GitHub, Buy Me a Coffee) have their own policies. Privacy questions: https://github.com/KarthikSubramanian07/ChipRatio/issues
 
 ---
 

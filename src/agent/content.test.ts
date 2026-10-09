@@ -45,7 +45,8 @@ describe('agent-facing content', () => {
     expect(html).toContain('"contactPoint"');
     expect(html).toContain('"contactType": "customer support"');
     expect(html).toContain('"@type": "PostalAddress"');
-    expect(html).toContain('"email": "winnerkarthik07@gmail.com"');
+    // No personal email is published anywhere on the site.
+    expect(html).not.toMatch(/@gmail\.com/);
   });
 
   it('puts the brand and product phrase in the homepage title and H1', () => {

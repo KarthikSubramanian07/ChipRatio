@@ -2,9 +2,9 @@
 
 ChipRatio is a small open-source project. If something looks wrong with a split, a blind ladder, or a chip set the engine refuses to price, send a written report with the chip counts, player count, buy-in, and game type (cash or tournament).
 
-## Email
+## Private questions
 
-winnerkarthik07@gmail.com - private questions, security notes about the static site, or anything you would rather not put in a public issue. Include “ChipRatio” in the subject.
+Open a GitHub issue titled "Contact" and say it is private, for security notes about the static site or anything you would rather not discuss in public. The maintainer will follow up through a private channel.
 
 ## GitHub issues
 

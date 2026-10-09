@@ -18,4 +18,4 @@ The site is hosted on Cloudflare Pages. Like most content delivery networks, Clo
 
 ## Contact about privacy
 
-Email winnerkarthik07@gmail.com or open an issue on https://github.com/KarthikSubramanian07/ChipRatio/issues. More options: https://chipratio.pages.dev/contact/
+Open an issue on https://github.com/KarthikSubramanian07/ChipRatio/issues. More options: https://chipratio.pages.dev/contact/
