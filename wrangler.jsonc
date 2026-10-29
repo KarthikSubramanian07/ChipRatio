@@ -1,6 +1,6 @@
 {
-  // Cloudflare Pages project config. `npm run deploy` and the deploy workflow both use it.
-  // The site is fully static, so there are no functions, bindings, or secrets here.
+  // Cloudflare Pages project config. `npm run deploy` uses it.
+  // Static assets build to dist/; Pages Functions in functions/ handle Accept negotiation.
   "name": "chipratio",
   "pages_build_output_dir": "dist",
   "compatibility_date": "2025-01-01",
