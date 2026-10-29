@@ -23,7 +23,7 @@ Most calculators answer with raw division. Twenty dollars across 71 chips is 28�
 ## What it does
 
 - **Cash game or tournament, in plain words.** Cash game: chips are money, blinds stay put. Tournament: chips are points, blinds go up.
-- **Chip values that are real money.** For a $20 game on a standard set: white 10¢, red 50¢, green $2.50, black $10, blinds 10¢/20¢. Never $1.25 or 28¢.
+- **Chip values that are real money.** For a $20 game on the default 5-color set: white 10¢, red 20¢, blue 50¢, green $1, black $2, blinds 10¢/20¢. Never $1.25 or 28¢.
 - **Counts you can deal fast.** Stacks favor counts you count out in fives (15, 10, 5) and a proper pyramid: plenty of small chips for blinds, fewer big ones.
 - **Round tournament stacks.** 500, 1,000, 2,500. If your case cannot build the stack you asked for, it picks the nearest round one and says why.
 - **Real blind ladders.** 5/10, 10/20, 15/30, 25/50 ... no 2/3 or 14/27.

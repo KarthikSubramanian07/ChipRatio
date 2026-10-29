@@ -132,7 +132,7 @@ p {
   margin: 0 0 1em;
 }
 .wrap {
-  width: min(1040px, 92vw);
+  width: min(1120px, 92vw);
   margin: 0 auto;
   padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
 }
@@ -217,14 +217,6 @@ p {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-.footer-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.footer-inner p {
-  margin: 0;
 }
 .prose-page {
   padding: 28px 0 8px;
@@ -321,40 +313,99 @@ p {
   color: var(--muted);
   font-size: 0.9rem;
 }
+.footer-inner p {
+  margin: 0;
+}
+.footer-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 .footer-links {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
 }
+/* On a computer the tagline sits left and the links sit right, on one row. */
+@media (min-width: 720px) {
+  .footer-inner {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-links {
+    justify-content: flex-end;
+  }
+}
 
-/* --- Hero + prose ----------------------------------------------------------- */
+/* --- Hero + explainers ----------------------------------------------------------- */
+/* The hero spans the page in the same two columns as the calculator below it: the headline
+   over the setup panel, the description over the answer. Stacked on phones. */
 .hero {
-  padding: 32px 0 20px;
-  max-width: 40rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 12px var(--gap);
+  align-items: center;
+  padding: 36px 0 24px;
 }
 .hero h1 {
   font-family: var(--display);
-  font-size: clamp(2rem, 5vw, 3rem);
+  font-size: clamp(2.2rem, 4.6vw, 3.4rem);
   font-weight: 700;
-  margin-bottom: 0.25em;
+  margin: 0;
 }
 .hero-sub {
   color: var(--muted);
-  font-size: 1.05rem;
+  font-size: 1.08rem;
   margin: 0;
 }
-.prose {
-  margin-top: 56px;
-  max-width: 68ch;
+/* The explainer section runs the full width of the page: three cards side by side on a
+   laptop, two on a tablet, one on a phone. Each card keeps a comfortable line length. */
+.explain {
+  margin-top: 64px;
 }
-.prose h2 {
+.explain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gap);
+}
+@media (max-width: 979px) {
+  .explain-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .explain-card:last-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 639px) {
+  .explain-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.explain-card {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 22px 8px;
+}
+.explain-kicker {
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--accent);
+  margin: 0 0 8px;
+}
+.explain h2 {
   font-family: var(--display);
-  font-size: 1.45rem;
-  margin-top: 1.5em;
+  font-size: 1.4rem;
+  margin: 0 0 0.6em;
 }
-.prose p {
+.explain-card p:not(.explain-kicker) {
   color: color-mix(in srgb, var(--text) 86%, var(--muted));
+  font-size: 0.97rem;
+  margin: 0 0 14px;
 }
 .noscript-note {
   background: var(--surface);
@@ -362,9 +413,23 @@ p {
   padding: 14px 16px;
   border-radius: var(--radius);
 }
+.faq {
+  margin-top: 48px;
+}
+.faq-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 var(--gap);
+  align-items: start;
+}
+@media (max-width: 719px) {
+  .faq-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .faq details {
   border-bottom: 1px solid var(--border);
-  padding: 12px 0;
+  padding: 14px 0;
 }
 .faq summary {
   cursor: pointer;
@@ -412,8 +477,9 @@ p {
 }
 /* iPad portrait and small laptops: two narrower columns with a little less padding. */
 @media (min-width: 720px) and (max-width: 1099px) {
-  .calc {
-    gap: 12px;
+  .calc,
+  .hero {
+    column-gap: 12px;
   }
   .panel {
     padding: 18px;
@@ -462,6 +528,9 @@ p {
 }
 @media (max-width: 719px) {
   .hero {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 580px;
+    margin-inline: auto;
     padding: 22px 0 14px;
   }
   .hero-sub {

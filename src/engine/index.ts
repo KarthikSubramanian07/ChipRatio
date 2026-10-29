@@ -15,7 +15,7 @@ export * from './types';
 export {
   PALETTE,
   PRESETS,
-  STANDARD_300,
+  DEFAULT_SET,
   cloneSet,
   colorHex,
   colorEdge,
@@ -30,9 +30,9 @@ export const MAX_PLAYERS = 12;
 /** Fewer chips than this per player is not really a stack. */
 const THIN_STACK_CHIPS = 12;
 
-/** Sensible defaults for a fresh session: six friends, a $20 cash game. */
+/** Sensible defaults for a fresh session: five friends, a $20 cash game. */
 export const DEFAULT_CONFIG: Config = {
-  players: 6,
+  players: 5,
   game: 'cash',
   buyInCents: 2000,
   smallestChipCents: null,

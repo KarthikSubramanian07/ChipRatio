@@ -55,16 +55,24 @@ export const STANDARD_300: ChipSet = {
   ],
 };
 
-/** Standard 500-piece set: 150 white (1), 150 red (5), 100 green (25), 75 black (100), 25 purple (500). */
+/**
+ * Standard 500-piece set, and the default on first open: five colors including blue.
+ * 150 white (5), 150 red (10), 100 blue (25), 50 green (50), 50 black (100). The 1:2:5:10:20
+ * ratio is what makes a $20 cash game come out as 10¢, 20¢, 50¢, $1 and $2 chips, with no
+ * chip worth more than a tenth of the buy-in.
+ */
 export const STANDARD_500: ChipSet = {
   denominations: [
-    denom('w', 'white', 1, 150),
-    denom('r', 'red', 5, 150),
-    denom('g', 'green', 25, 100),
-    denom('b', 'black', 100, 75),
-    denom('p', 'purple', 500, 25),
+    denom('w', 'white', 5, 150),
+    denom('r', 'red', 10, 150),
+    denom('u', 'blue', 25, 100),
+    denom('g', 'green', 50, 50),
+    denom('b', 'black', 100, 50),
   ],
 };
+
+/** The set a fresh visitor starts with. */
+export const DEFAULT_SET: ChipSet = STANDARD_500;
 
 /** Starter 100-piece set: 20 each of white (1), red (5), green (25), black (100), yellow (500). */
 export const STARTER_100: ChipSet = {
@@ -140,7 +148,7 @@ export const PRESETS: Preset[] = [
   {
     id: 'standard-500',
     label: 'Standard 500',
-    description: '150 white, 150 red, 100 green, 75 black, 25 purple',
+    description: '150 white, 150 red, 100 blue, 50 green, 50 black',
     set: STANDARD_500,
   },
   {
