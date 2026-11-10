@@ -21,13 +21,13 @@
   --border: #1c6942;
   --text: #f3efe2;
   --muted: #a9c6b3;
-  --accent: #e8b84b;
+  --accent: #f0c261;
   --accent-ink: #2a1e00;
-  --accent-soft: rgba(232, 184, 75, 0.16);
+  --accent-soft: rgba(240, 194, 97, 0.14);
   --danger: #ff6b6b;
   --notice: #ffd479;
   --shadow: 0 12px 34px rgba(0, 0, 0, 0.34);
-  --ring: rgba(232, 184, 75, 0.55);
+  --ring: #f0c261;
 }
 
 :root[data-theme='midnight'] {
@@ -44,7 +44,7 @@
   --danger: #ff7a90;
   --notice: #ffd479;
   --shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
-  --ring: rgba(110, 168, 254, 0.55);
+  --ring: #6ea8fe;
 }
 
 :root[data-theme='ivory'] {
@@ -61,7 +61,7 @@
   --danger: #c0392b;
   --notice: #a86400;
   --shadow: 0 12px 30px rgba(40, 34, 20, 0.12);
-  --ring: rgba(178, 30, 53, 0.4);
+  --ring: #b21e35;
 }
 
 :root[data-theme='rose'] {
@@ -72,13 +72,13 @@
   --border: #f3d3da;
   --text: #3a1420;
   --muted: #8a5866;
-  --accent: #d6336c;
+  --accent: #c2255c;
   --accent-ink: #ffffff;
-  --accent-soft: rgba(214, 51, 108, 0.12);
+  --accent-soft: rgba(194, 37, 92, 0.12);
   --danger: #c1123f;
   --notice: #9a5b00;
   --shadow: 0 12px 30px rgba(120, 30, 60, 0.14);
-  --ring: rgba(214, 51, 108, 0.4);
+  --ring: #c2255c;
 }
 
 :root[data-theme='neon'] {
@@ -95,7 +95,7 @@
   --danger: #ff5d8f;
   --notice: #ffe066;
   --shadow: 0 0 34px rgba(44, 230, 200, 0.18);
-  --ring: rgba(44, 230, 200, 0.6);
+  --ring: #2ce6c8;
 }
 
 /* --- Base ------------------------------------------------------------------- */
@@ -117,6 +117,7 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   min-height: 100dvh;
+  overflow-wrap: break-word;
 }
 h1,
 h2,
@@ -127,6 +128,7 @@ h3 {
 }
 a {
   color: var(--accent);
+  overflow-wrap: break-word;
 }
 p {
   margin: 0 0 1em;
@@ -136,6 +138,18 @@ p {
   margin: 0 auto;
   padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
 }
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .skip-link {
   position: absolute;
   left: -9999px;
@@ -1203,5 +1217,16 @@ p {
   .denom-row .counter {
     grid-template-columns: 40px minmax(0, 1fr) 40px;
     gap: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

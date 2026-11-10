@@ -143,8 +143,8 @@
         </nav>
         <div class="header-actions">
           <span class="free-badge" title="No ads, no signup, no paywall">Free forever</span>
-          <button id="theme-button" class="theme-button" type="button" aria-label="Change theme">
-            <span id="theme-label">Felt</span>
+          <button id="theme-button" class="theme-button" type="button">
+            <span class="visually-hidden">Theme: </span><span id="theme-label">Felt</span>
           </button>
         </div>
       </div>
@@ -162,7 +162,7 @@
       </section>
 
       <!-- The calculator mounts here. It is fully client side and needs JavaScript. -->
-      <div id="calculator"></div>
+      <div id="calculator" tabindex="-1"></div>
       <noscript>
         <p class="noscript-note">
           ChipRatio runs in your browser and needs JavaScript switched on. The math is a few

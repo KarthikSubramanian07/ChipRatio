@@ -590,7 +590,7 @@ function copyBar(r: Result, store: Store): HTMLElement {
 }
 
 function warningList(warnings: Warning[]): HTMLElement {
-  const list = el('ul', { class: 'warnings' });
+  const list = el('ul', { class: 'warnings', attrs: { role: 'status', 'aria-live': 'polite' } });
   for (const w of warnings) {
     list.append(el('li', { class: `warn ${severity(w.code)}` }, w.message));
   }
@@ -737,13 +737,13 @@ function counter(
 interface PaletteState {
   pop: HTMLElement;
   onOutside: (e: Event) => void;
-  onEscape: (e: KeyboardEvent) => void;
+  onKey: (e: KeyboardEvent) => void;
 }
 let activePalette: PaletteState | null = null;
 
 function openPalette(anchor: HTMLElement, current: string, onPick: (color: string) => void): void {
   closePalette();
-  const pop = el('div', { class: 'palette-pop', role: 'menu' });
+  const pop = el('div', { class: 'palette-pop', role: 'menu', ariaLabel: 'Choose chip color' });
   for (const c of PALETTE) {
     pop.append(
       el('button', {
@@ -772,28 +772,40 @@ function openPalette(anchor: HTMLElement, current: string, onPick: (color: strin
     if (e.target instanceof Node && pop.contains(e.target)) return;
     closePalette();
   };
-  const onEscape = (e: KeyboardEvent): void => {
+  const onKey = (e: KeyboardEvent): void => {
     if (e.key === 'Escape') {
       closePalette();
       anchor.focus();
+    } else if (e.key === 'Tab') {
+      const buttons = Array.from(pop.querySelectorAll<HTMLButtonElement>('button'));
+      if (!buttons.length) return;
+      const first = buttons[0];
+      const last = buttons[buttons.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        last.focus();
+        e.preventDefault();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        first.focus();
+        e.preventDefault();
+      }
     }
   };
-  activePalette = { pop, onOutside, onEscape };
+  activePalette = { pop, onOutside, onKey };
 
   // Defer so the click that opened the popover does not immediately close it.
   setTimeout(() => {
     if (activePalette?.pop !== pop) return;
     document.addEventListener('pointerdown', onOutside);
-    document.addEventListener('keydown', onEscape);
+    document.addEventListener('keydown', onKey);
   }, 0);
 }
 
 function closePalette(): void {
   if (!activePalette) return;
-  const { pop, onOutside, onEscape } = activePalette;
+  const { pop, onOutside, onKey } = activePalette;
   pop.remove();
   document.removeEventListener('pointerdown', onOutside);
-  document.removeEventListener('keydown', onEscape);
+  document.removeEventListener('keydown', onKey);
   activePalette = null;
 }
 
